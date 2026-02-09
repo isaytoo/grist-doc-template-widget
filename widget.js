@@ -306,6 +306,20 @@ function initEditor() {
     askBeforePasteHTML: false,
     askBeforePasteFromWord: false,
     defaultActionOnPaste: 'insert_clear_html',
+    controls: {
+      pagebreak: {
+        name: 'pagebreak',
+        iconURL: '',
+        tooltip: currentLang === 'fr' ? 'Saut de page' : 'Page break',
+        exec: function(editor) {
+          editor.selection.insertHTML(
+            '<div class="page-break-marker" contenteditable="false" style="border:none;border-top:3px dashed #ef4444;margin:20px 0;padding:8px 0;text-align:center;color:#ef4444;font-size:12px;font-weight:600;cursor:default;page-break-after:always;">' +
+            '✂ ── ' + (currentLang === 'fr' ? 'SAUT DE PAGE' : 'PAGE BREAK') + ' ──' +
+            '</div>'
+          );
+        }
+      }
+    },
     buttons: [
       'bold', 'italic', 'underline', 'strikethrough', '|',
       'font', 'fontsize', '|',
@@ -316,7 +330,7 @@ function initEditor() {
       'align', '|',
       'table', '|',
       'link', 'image', '|',
-      'hr', 'symbol', '|',
+      'hr', 'pagebreak', '|',
       'undo', 'redo', '|',
       'eraser', 'source', 'fullsize', 'print'
     ],
@@ -881,9 +895,11 @@ function splitHtmlIntoPageSections(html) {
       var style = node.getAttribute('style') || '';
       var tagName = node.tagName.toLowerCase();
 
-      // Detect page break elements
-      if (style.indexOf('page-break-after:always') !== -1 ||
-          style.indexOf('page-break-before:always') !== -1 ||
+      // Detect page break elements (manual markers, Word imports, hr with page-break)
+      var classList = node.className || '';
+      if (classList.indexOf('page-break-marker') !== -1 ||
+          style.indexOf('page-break-after') !== -1 ||
+          style.indexOf('page-break-before') !== -1 ||
           (tagName === 'hr' && style.indexOf('page-break') !== -1)) {
         // Push current accumulated content
         if (currentHtml.trim()) {
