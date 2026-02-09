@@ -288,44 +288,47 @@ function renderVariableChips() {
 
 function insertVariable(colName) {
   if (!editorInstance) return;
-  var range = editorInstance.getSelection(true);
-  var varText = '{{' + colName + '}}';
-  // Insert variable with styling
-  editorInstance.insertText(range.index, varText, { 'bold': true, 'color': '#7c3aed', 'background': '#f3e8ff' });
-  // Insert a space with NO formatting to reset cursor style
-  var afterIdx = range.index + varText.length;
-  editorInstance.insertText(afterIdx, ' ', { 'bold': false, 'color': '#000000', 'background': false });
-  editorInstance.setSelection(afterIdx + 1);
-  // Remove all formatting at cursor so next typing is normal
-  editorInstance.format('bold', false);
-  editorInstance.format('color', false);
-  editorInstance.format('background', false);
+  var varHtml = '<span style="background:#f3e8ff;color:#7c3aed;padding:2px 6px;border-radius:4px;font-weight:600;" contenteditable="false">{{' + colName + '}}</span>&nbsp;';
+  editorInstance.selection.insertHTML(varHtml);
   showToast('{{' + colName + '}} inséré', 'info');
 }
 
 // =============================================================================
-// QUILL EDITOR
+// JODIT EDITOR
 // =============================================================================
 
 function initEditor() {
-  editorInstance = new Quill('#editor-container', {
-    theme: 'snow',
+  editorInstance = Jodit.make('#editor-container', {
+    language: currentLang,
+    height: 500,
     placeholder: currentLang === 'fr' ? 'Commencez à écrire votre document ici...' : 'Start writing your document here...',
-    modules: {
-      toolbar: [
-        [{ 'header': [1, 2, 3, false] }],
-        [{ 'font': [] }],
-        [{ 'size': ['small', false, 'large', 'huge'] }],
-        ['bold', 'italic', 'underline', 'strike'],
-        [{ 'color': [] }, { 'background': [] }],
-        [{ 'align': [] }],
-        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-        [{ 'indent': '-1' }, { 'indent': '+1' }],
-        ['blockquote'],
-        ['link', 'image'],
-        ['clean']
-      ]
-    }
+    toolbarAdaptive: false,
+    askBeforePasteHTML: false,
+    askBeforePasteFromWord: false,
+    defaultActionOnPaste: 'insert_clear_html',
+    buttons: [
+      'bold', 'italic', 'underline', 'strikethrough', '|',
+      'font', 'fontsize', '|',
+      'brush', '|',
+      'paragraph', '|',
+      'ul', 'ol', '|',
+      'outdent', 'indent', '|',
+      'align', '|',
+      'table', '|',
+      'link', 'image', '|',
+      'hr', 'symbol', '|',
+      'undo', 'redo', '|',
+      'eraser', 'source', 'fullsize', 'print'
+    ],
+    style: {
+      'font-family': '"Times New Roman", Times, serif',
+      'font-size': '14px',
+      'line-height': '1.6'
+    },
+    iframe: false,
+    showCharsCounter: false,
+    showWordsCounter: false,
+    showXPathInStatusbar: false
   });
 }
 
@@ -335,12 +338,12 @@ function initEditor() {
 
 function getEditorHtml() {
   if (!editorInstance) return '';
-  return editorInstance.root.innerHTML;
+  return editorInstance.value;
 }
 
 function setEditorHtml(html) {
   if (!editorInstance) return;
-  editorInstance.root.innerHTML = html;
+  editorInstance.value = html;
 }
 
 function saveTemplate() {
@@ -368,7 +371,7 @@ function loadSavedTemplate() {
 async function clearEditor() {
   var confirmed = await showModal(t('confirmClearTitle'), t('confirmClear'));
   if (confirmed && editorInstance) {
-    editorInstance.setText('');
+    editorInstance.value = '';
     templateHtml = '';
     if (selectedTable) {
       try { localStorage.removeItem(TEMPLATE_STORAGE_KEY + selectedTable); } catch (e) {}
