@@ -347,6 +347,28 @@ function initEditor() {
 }
 
 // =============================================================================
+// PAGE FORMAT VISUAL
+// =============================================================================
+
+function setEditorPageFormat(format) {
+  var wrapper = document.getElementById('editor-page-wrapper');
+  if (!wrapper) return;
+  wrapper.className = '';
+  if (format === 'a4') {
+    wrapper.className = 'editor-page-a4';
+  } else if (format === 'letter') {
+    wrapper.className = 'editor-page-letter';
+  } else {
+    wrapper.className = 'editor-page-free';
+  }
+  // Sync with PDF page size selector if it exists
+  var pdfPageSize = document.getElementById('pdf-page-size');
+  if (pdfPageSize && format !== 'free') {
+    pdfPageSize.value = format;
+  }
+}
+
+// =============================================================================
 // SAVE / LOAD TEMPLATE
 // =============================================================================
 
@@ -565,6 +587,10 @@ function resolveTemplate(html, record, forPdf) {
         resolved = resolved.replace(plainRegex, '<span class="var-empty">[' + col + ': vide]</span>');
       }
     }
+  }
+  // For PDF: remove page-break markers (keep them only as split points, not visible)
+  if (forPdf) {
+    resolved = resolved.replace(/<div[^>]*class="page-break-marker"[^>]*>[\s\S]*?<\/div>/g, '<div style="page-break-after:always;"></div>');
   }
   // For PDF: strip variable styling and table borders
   if (forPdf) {
