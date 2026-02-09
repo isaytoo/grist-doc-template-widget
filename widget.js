@@ -283,41 +283,35 @@ function renderVariableChips() {
 
 function insertVariable(colName) {
   if (!editorInstance) return;
-  var varHtml = '<span class="mce-var" style="background:#f3e8ff;color:#7c3aed;padding:2px 6px;border-radius:4px;font-weight:600;font-size:13px;" contenteditable="false">{{' + colName + '}}</span>&nbsp;';
-  editorInstance.insertContent(varHtml);
+  var range = editorInstance.getSelection(true);
+  var varText = '{{' + colName + '}}';
+  editorInstance.insertText(range.index, varText, { 'bold': true, 'color': '#7c3aed', 'background': '#f3e8ff' });
+  editorInstance.setSelection(range.index + varText.length);
   showToast('{{' + colName + '}} inséré', 'info');
 }
 
 // =============================================================================
-// TINYMCE EDITOR
+// QUILL EDITOR
 // =============================================================================
 
 function initEditor() {
-  tinymce.init({
-    selector: '#editor',
-    height: 500,
-    menubar: 'file edit view insert format table',
-    plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table help wordcount pagebreak',
-    toolbar: 'undo redo | styles | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | table | pagebreak | removeformat | code fullscreen',
-    content_style: 'body { font-family: "Times New Roman", Times, serif; font-size: 14px; line-height: 1.6; padding: 20px; } .mce-var { background: #f3e8ff; color: #7c3aed; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 13px; }',
-    pagebreak_separator: '<div style="page-break-after: always;"></div>',
-    branding: false,
-    promotion: false,
-    license_key: 'gpl',
-    setup: function(editor) {
-      editorInstance = editor;
-      editor.on('init', function() {
-        // Set placeholder
-        if (!editor.getContent()) {
-          editor.setContent(t('editorPlaceholder'));
-        }
-      });
-      editor.on('focus', function() {
-        var content = editor.getContent();
-        if (content.indexOf('Commencez à écrire') !== -1 || content.indexOf('Start writing') !== -1) {
-          editor.setContent('');
-        }
-      });
+  editorInstance = new Quill('#editor-container', {
+    theme: 'snow',
+    placeholder: currentLang === 'fr' ? 'Commencez à écrire votre document ici...' : 'Start writing your document here...',
+    modules: {
+      toolbar: [
+        [{ 'header': [1, 2, 3, false] }],
+        [{ 'font': [] }],
+        [{ 'size': ['small', false, 'large', 'huge'] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ 'color': [] }, { 'background': [] }],
+        [{ 'align': [] }],
+        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+        [{ 'indent': '-1' }, { 'indent': '+1' }],
+        ['blockquote'],
+        ['link', 'image'],
+        ['clean']
+      ]
     }
   });
 }
@@ -326,9 +320,19 @@ function initEditor() {
 // SAVE / LOAD TEMPLATE
 // =============================================================================
 
+function getEditorHtml() {
+  if (!editorInstance) return '';
+  return editorInstance.root.innerHTML;
+}
+
+function setEditorHtml(html) {
+  if (!editorInstance) return;
+  editorInstance.root.innerHTML = html;
+}
+
 function saveTemplate() {
   if (!editorInstance) return;
-  templateHtml = editorInstance.getContent();
+  templateHtml = getEditorHtml();
   if (selectedTable) {
     try {
       localStorage.setItem(TEMPLATE_STORAGE_KEY + selectedTable, templateHtml);
@@ -341,7 +345,7 @@ function loadSavedTemplate() {
   try {
     var saved = localStorage.getItem(TEMPLATE_STORAGE_KEY + selectedTable);
     if (saved && editorInstance) {
-      editorInstance.setContent(saved);
+      setEditorHtml(saved);
       templateHtml = saved;
       showToast(t('templateLoaded'), 'info');
     }
@@ -351,7 +355,7 @@ function loadSavedTemplate() {
 async function clearEditor() {
   var confirmed = await showModal(t('confirmClearTitle'), t('confirmClear'));
   if (confirmed && editorInstance) {
-    editorInstance.setContent('');
+    editorInstance.setText('');
     templateHtml = '';
     if (selectedTable) {
       try { localStorage.removeItem(TEMPLATE_STORAGE_KEY + selectedTable); } catch (e) {}
@@ -403,7 +407,7 @@ function importWord(file) {
         console.log('Mammoth messages:', result.messages);
       }
       if (editorInstance) {
-        editorInstance.setContent(html);
+        setEditorHtml(html);
         templateHtml = html;
       }
       showToast(t('importSuccess'), 'success');
@@ -466,7 +470,7 @@ function escapeRegex(str) {
 function renderPreview() {
   // Get current template from editor
   if (editorInstance) {
-    templateHtml = editorInstance.getContent();
+    templateHtml = getEditorHtml();
   }
 
   var count = getRecordCount();
@@ -526,7 +530,7 @@ async function generateSinglePdf() {
 
 async function generatePdf() {
   if (!templateHtml && editorInstance) {
-    templateHtml = editorInstance.getContent();
+    templateHtml = getEditorHtml();
   }
   if (!templateHtml || !selectedTable) {
     showToast(t('noTemplate'), 'error');

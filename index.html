@@ -12,8 +12,9 @@
   <title>Document Template - Mail Merge</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
-  <!-- TinyMCE WYSIWYG Editor -->
-  <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+  <!-- Quill.js WYSIWYG Editor (free, no API key) -->
+  <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+  <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
   <!-- Mammoth.js for Word import -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
   <!-- jsPDF + html2canvas for PDF -->
@@ -176,15 +177,22 @@
     }
     .var-chip:hover .table-tag { background: rgba(255,255,255,0.25); color: white; }
 
-    /* ========== EDITOR AREA ========== */
+    /* ========== EDITOR AREA (Quill) ========== */
     .editor-wrapper {
       background: white;
       border: 1px solid #e2e8f0;
       border-radius: 8px;
       overflow: hidden;
-      min-height: 400px;
     }
-    .tox-tinymce { border: none !important; }
+    #editor-container {
+      min-height: 400px;
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    #editor-container .ql-editor { min-height: 400px; }
+    .ql-toolbar.ql-snow { border: none !important; border-bottom: 1px solid #e2e8f0 !important; }
+    .ql-container.ql-snow { border: none !important; }
 
     /* ========== PREVIEW ========== */
     .preview-nav {
@@ -472,7 +480,7 @@
 
         <!-- EDITOR -->
         <div class="editor-wrapper">
-          <textarea id="editor"></textarea>
+          <div id="editor-container"></div>
         </div>
 
         <!-- SAVE TEMPLATE -->
