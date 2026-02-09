@@ -285,8 +285,16 @@ function insertVariable(colName) {
   if (!editorInstance) return;
   var range = editorInstance.getSelection(true);
   var varText = '{{' + colName + '}}';
+  // Insert variable with styling
   editorInstance.insertText(range.index, varText, { 'bold': true, 'color': '#7c3aed', 'background': '#f3e8ff' });
-  editorInstance.setSelection(range.index + varText.length);
+  // Insert a space with NO formatting to reset cursor style
+  var afterIdx = range.index + varText.length;
+  editorInstance.insertText(afterIdx, ' ', { 'bold': false, 'color': '#000000', 'background': false });
+  editorInstance.setSelection(afterIdx + 1);
+  // Remove all formatting at cursor so next typing is normal
+  editorInstance.format('bold', false);
+  editorInstance.format('color', false);
+  editorInstance.format('background', false);
   showToast('{{' + colName + '}} inséré', 'info');
 }
 
