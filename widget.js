@@ -403,33 +403,91 @@ if (dropZone) {
 
 function importWord(file) {
   if (!file) return;
+  showToast(currentLang === 'fr' ? 'Import en cours...' : 'Importing...', 'info');
   var reader = new FileReader();
   reader.onload = function(e) {
     var arrayBuffer = e.target.result;
-    mammoth.convertToHtml({ arrayBuffer: arrayBuffer }, {
+    var options = {
       styleMap: [
         "p[style-name='Title'] => h1:fresh",
+        "p[style-name='Titre'] => h1:fresh",
         "p[style-name='Heading 1'] => h1:fresh",
+        "p[style-name='Titre 1'] => h1:fresh",
         "p[style-name='Heading 2'] => h2:fresh",
+        "p[style-name='Titre 2'] => h2:fresh",
         "p[style-name='Heading 3'] => h3:fresh",
-        "p[style-name='List Paragraph'] => li:fresh"
-      ]
-    }).then(function(result) {
+        "p[style-name='Titre 3'] => h3:fresh",
+        "p[style-name='Heading 4'] => h4:fresh",
+        "p[style-name='Titre 4'] => h4:fresh",
+        "p[style-name='List Paragraph'] => li:fresh",
+        "p[style-name='Paragraphe de liste'] => li:fresh",
+        "p[style-name='Quote'] => blockquote:fresh",
+        "p[style-name='Citation'] => blockquote:fresh",
+        "p[style-name='Intense Quote'] => blockquote:fresh",
+        "p[style-name='Subtitle'] => h2:fresh",
+        "p[style-name='Sous-titre'] => h2:fresh",
+        "r[style-name='Strong'] => strong",
+        "r[style-name='Emphasis'] => em",
+        "b => strong",
+        "i => em",
+        "u => u",
+        "strike => s"
+      ],
+      convertImage: mammoth.images.imgElement(function(image) {
+        return image.read('base64').then(function(imageBuffer) {
+          return {
+            src: 'data:' + image.contentType + ';base64,' + imageBuffer
+          };
+        });
+      }),
+      includeDefaultStyleMap: true
+    };
+    mammoth.convertToHtml({ arrayBuffer: arrayBuffer }, options).then(function(result) {
       var html = result.value;
       if (result.messages.length > 0) {
         console.log('Mammoth messages:', result.messages);
       }
+      // Post-process HTML for better layout
+      html = postProcessWordHtml(html);
       if (editorInstance) {
         setEditorHtml(html);
         templateHtml = html;
       }
-      showToast(t('importSuccess'), 'success');
+      var warnings = result.messages.filter(function(m) { return m.type === 'warning'; });
+      if (warnings.length > 0) {
+        showToast(t('importSuccess') + ' (' + warnings.length + ' avertissements)', 'warning');
+      } else {
+        showToast(t('importSuccess'), 'success');
+      }
     }).catch(function(error) {
       console.error('Word import error:', error);
       showToast(t('importError') + error.message, 'error');
     });
   };
   reader.readAsArrayBuffer(file);
+}
+
+function postProcessWordHtml(html) {
+  // Add max-width to images so they fit in the editor
+  html = html.replace(/<img /g, '<img style="max-width:100%;height:auto;" ');
+
+  // Convert page breaks (Mammoth doesn't handle them well)
+  // Some Word docs use <br/> for page breaks - we add a visual separator
+  html = html.replace(/<br\s*\/?>\s*<br\s*\/?>\s*<br\s*\/?>/g,
+    '<hr style="border:none;border-top:2px dashed #cbd5e1;margin:30px 0;page-break-after:always;">');
+
+  // Ensure empty paragraphs have some height (Word uses them for spacing)
+  html = html.replace(/<p><\/p>/g, '<p style="min-height:1em;">&nbsp;</p>');
+
+  // Add some spacing to paragraphs
+  html = html.replace(/<p>/g, '<p style="margin-bottom:8px;">');
+
+  // Style tables if present
+  html = html.replace(/<table>/g, '<table style="border-collapse:collapse;width:100%;margin:10px 0;">');
+  html = html.replace(/<td>/g, '<td style="border:1px solid #e2e8f0;padding:6px 10px;">');
+  html = html.replace(/<th>/g, '<th style="border:1px solid #e2e8f0;padding:6px 10px;background:#f8fafc;font-weight:bold;">');
+
+  return html;
 }
 
 // =============================================================================
