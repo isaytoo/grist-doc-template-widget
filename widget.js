@@ -207,6 +207,19 @@ if (!isInsideGrist()) {
     try {
       await grist.ready({ requiredAccess: 'full' });
       console.log('Doc Template widget ready');
+
+      // Listen for widget options (template stored in Grist)
+      grist.onOptions(function(options) {
+        if (options && options.template && selectedTable) {
+          var key = 'template_' + selectedTable;
+          if (options[key]) {
+            setEditorHtml(options[key]);
+            templateHtml = options[key];
+            console.log('Template loaded from Grist options for', selectedTable);
+          }
+        }
+      });
+
       await loadTables();
       initEditor();
     } catch (error) {
@@ -382,18 +395,40 @@ function setEditorHtml(html) {
   editorInstance.value = html;
 }
 
-function saveTemplate() {
+async function saveTemplate() {
   if (!editorInstance) return;
   templateHtml = getEditorHtml();
   if (selectedTable) {
+    // Save to localStorage as backup
     try {
       localStorage.setItem(TEMPLATE_STORAGE_KEY + selectedTable, templateHtml);
     } catch (e) { /* localStorage may not be available in iframe */ }
+    // Save to Grist widget options (persistent, shared)
+    try {
+      await grist.widgetApi.setOption('template_' + selectedTable, templateHtml);
+      await grist.widgetApi.setOption('template', true); // flag that we have templates
+      console.log('Template saved to Grist options for', selectedTable);
+    } catch (e) {
+      console.warn('Could not save to Grist options:', e);
+    }
   }
   showToast(t('templateSaved'), 'success');
 }
 
-function loadSavedTemplate() {
+async function loadSavedTemplate() {
+  // Try loading from Grist widget options first
+  try {
+    var options = await grist.widgetApi.getOption('template_' + selectedTable);
+    if (options && editorInstance) {
+      setEditorHtml(options);
+      templateHtml = options;
+      showToast(t('templateLoaded'), 'info');
+      return;
+    }
+  } catch (e) {
+    console.warn('Could not load from Grist options:', e);
+  }
+  // Fallback to localStorage
   try {
     var saved = localStorage.getItem(TEMPLATE_STORAGE_KEY + selectedTable);
     if (saved && editorInstance) {
@@ -411,6 +446,8 @@ async function clearEditor() {
     templateHtml = '';
     if (selectedTable) {
       try { localStorage.removeItem(TEMPLATE_STORAGE_KEY + selectedTable); } catch (e) {}
+      // Also clear from Grist options
+      try { await grist.widgetApi.setOption('template_' + selectedTable, null); } catch (e) {}
     }
     showToast(t('templateCleared'), 'info');
   }
