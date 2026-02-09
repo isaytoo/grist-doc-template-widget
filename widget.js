@@ -705,68 +705,11 @@ async function generatePdf() {
       var record = getRecordAt(i);
       var resolved = resolveTemplate(templateHtml, record, true);
 
-      // Render to a temporary div
-      var tempDiv = document.createElement('div');
-      tempDiv.style.cssText = 'position:absolute;left:-9999px;top:0;width:' + (pageSize === 'a4' ? '794' : '816') + 'px;padding:40px 60px;font-family:"Times New Roman",Times,serif;font-size:14px;line-height:1.6;background:white;';
-      tempDiv.innerHTML = resolved;
-      document.body.appendChild(tempDiv);
-
-      // Wait for layout to settle
-      await new Promise(function(resolve) { setTimeout(resolve, 100); });
-
-      // Check cancel again after wait
-      if (pdfCancelled) {
-        document.body.removeChild(tempDiv);
-        break;
-      }
-
-      // Use html2canvas
-      var canvas = await html2canvas(tempDiv, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: tempDiv.scrollWidth,
-        windowHeight: tempDiv.scrollHeight
-      });
-
-      document.body.removeChild(tempDiv);
-
-      var imgData = canvas.toDataURL('image/jpeg', 0.95);
-      var imgWidth = pageWidth - 20; // 10mm margin each side
-      var imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      // Handle multi-page content
-      var yOffset = 0;
-      var availableHeight = pageHeight - 20; // 10mm margin top/bottom
-
+      // Render using block-aware page breaking
       if (i > startIdx) {
         pdf.addPage();
       }
-
-      while (yOffset < imgHeight) {
-        if (yOffset > 0) {
-          pdf.addPage();
-        }
-        // Calculate source crop
-        var sourceY = (yOffset / imgHeight) * canvas.height;
-        var sourceH = Math.min((availableHeight / imgHeight) * canvas.height, canvas.height - sourceY);
-        var drawH = (sourceH / canvas.height) * imgHeight;
-
-        // Create cropped canvas
-        var cropCanvas = document.createElement('canvas');
-        cropCanvas.width = canvas.width;
-        cropCanvas.height = sourceH;
-        var ctx = cropCanvas.getContext('2d');
-        ctx.drawImage(canvas, 0, sourceY, canvas.width, sourceH, 0, 0, canvas.width, sourceH);
-
-        var cropImgData = cropCanvas.toDataURL('image/jpeg', 0.95);
-        pdf.addImage(cropImgData, 'JPEG', 10, 10, imgWidth, drawH);
-
-        yOffset += availableHeight;
-      }
+      await renderHtmlToPdfPages(resolved, pdf, pageWidth, pageHeight, pageSize);
 
       pagesGenerated = i - startIdx + 1;
 
@@ -810,13 +753,51 @@ async function generatePdfFromHtml(html, filename) {
     var pageWidth = pdf.internal.pageSize.getWidth();
     var pageHeight = pdf.internal.pageSize.getHeight();
 
+    await renderHtmlToPdfPages(html, pdf, pageWidth, pageHeight, pageSize);
+
+    pdf.save(filename);
+    showToast('PDF généré !', 'success');
+
+  } catch (error) {
+    console.error('PDF error:', error);
+    showToast(t('pdfError') + error.message, 'error');
+  }
+}
+
+// =============================================================================
+// BLOCK-AWARE PDF PAGE RENDERING
+// =============================================================================
+
+async function renderHtmlToPdfPages(html, pdf, pageWidth, pageHeight, pageSize) {
+  var margin = 10; // mm
+  var imgWidth = pageWidth - (margin * 2);
+  var availableHeight = pageHeight - (margin * 2);
+  var pixelWidth = (pageSize === 'a4' ? 794 : 816);
+  var baseCss = 'position:absolute;left:-9999px;top:0;width:' + pixelWidth + 'px;padding:0 60px;font-family:"Times New Roman",Times,serif;font-size:14px;line-height:1.6;background:white;';
+
+  // Split HTML into blocks at page-break markers and top-level elements
+  var sections = splitHtmlIntoPageSections(html);
+  var currentY = margin;
+  var isFirstOnPage = true;
+
+  for (var s = 0; s < sections.length; s++) {
+    var section = sections[s];
+
+    // Handle explicit page break
+    if (section.isPageBreak) {
+      pdf.addPage();
+      currentY = margin;
+      isFirstOnPage = true;
+      continue;
+    }
+
+    // Render this block to canvas
     var tempDiv = document.createElement('div');
-    tempDiv.style.cssText = 'position:absolute;left:-9999px;top:0;width:' + (pageSize === 'a4' ? '794' : '816') + 'px;padding:40px 60px;font-family:"Times New Roman",Times,serif;font-size:14px;line-height:1.6;background:white;';
-    tempDiv.innerHTML = html;
+    tempDiv.style.cssText = baseCss + 'padding-top:20px;padding-bottom:20px;';
+    tempDiv.innerHTML = section.html;
     document.body.appendChild(tempDiv);
 
-    // Wait for layout to settle
-    await new Promise(function(resolve) { setTimeout(resolve, 100); });
+    await new Promise(function(resolve) { setTimeout(resolve, 50); });
 
     var canvas = await html2canvas(tempDiv, {
       scale: 2,
@@ -831,34 +812,127 @@ async function generatePdfFromHtml(html, filename) {
 
     document.body.removeChild(tempDiv);
 
-    var imgWidth = pageWidth - 20;
-    var imgHeight = (canvas.height * imgWidth) / canvas.width;
-    var availableHeight = pageHeight - 20;
-    var yOffset = 0;
+    var blockImgHeight = (canvas.height * imgWidth) / canvas.width;
 
-    while (yOffset < imgHeight) {
-      if (yOffset > 0) pdf.addPage();
-      var sourceY = (yOffset / imgHeight) * canvas.height;
-      var sourceH = Math.min((availableHeight / imgHeight) * canvas.height, canvas.height - sourceY);
-      var drawH = (sourceH / canvas.height) * imgHeight;
+    // If block fits on current page
+    if (currentY + blockImgHeight <= pageHeight - margin) {
+      var imgData = canvas.toDataURL('image/jpeg', 0.95);
+      pdf.addImage(imgData, 'JPEG', margin, currentY, imgWidth, blockImgHeight);
+      currentY += blockImgHeight;
+      isFirstOnPage = false;
+    }
+    // If block is too tall for any single page, split it (fallback)
+    else if (blockImgHeight > availableHeight) {
+      if (!isFirstOnPage) {
+        pdf.addPage();
+        currentY = margin;
+      }
+      // Crop the big block across pages
+      var yOffset = 0;
+      while (yOffset < blockImgHeight) {
+        if (yOffset > 0) {
+          pdf.addPage();
+          currentY = margin;
+        }
+        var remainH = Math.min(availableHeight, blockImgHeight - yOffset);
+        var sourceY = (yOffset / blockImgHeight) * canvas.height;
+        var sourceH = (remainH / blockImgHeight) * canvas.height;
 
-      var cropCanvas = document.createElement('canvas');
-      cropCanvas.width = canvas.width;
-      cropCanvas.height = sourceH;
-      var ctx = cropCanvas.getContext('2d');
-      ctx.drawImage(canvas, 0, sourceY, canvas.width, sourceH, 0, 0, canvas.width, sourceH);
+        var cropCanvas = document.createElement('canvas');
+        cropCanvas.width = canvas.width;
+        cropCanvas.height = Math.ceil(sourceH);
+        var ctx = cropCanvas.getContext('2d');
+        ctx.drawImage(canvas, 0, sourceY, canvas.width, sourceH, 0, 0, canvas.width, Math.ceil(sourceH));
 
-      var cropImgData = cropCanvas.toDataURL('image/jpeg', 0.95);
-      pdf.addImage(cropImgData, 'JPEG', 10, 10, imgWidth, drawH);
+        var cropImgData = cropCanvas.toDataURL('image/jpeg', 0.95);
+        pdf.addImage(cropImgData, 'JPEG', margin, margin, imgWidth, remainH);
 
-      yOffset += availableHeight;
+        yOffset += availableHeight;
+      }
+      currentY = margin + (blockImgHeight % availableHeight || availableHeight);
+      isFirstOnPage = false;
+    }
+    // Block doesn't fit on current page but fits on a fresh page
+    else {
+      pdf.addPage();
+      currentY = margin;
+      var imgData2 = canvas.toDataURL('image/jpeg', 0.95);
+      pdf.addImage(imgData2, 'JPEG', margin, currentY, imgWidth, blockImgHeight);
+      currentY += blockImgHeight;
+      isFirstOnPage = false;
+    }
+  }
+}
+
+function splitHtmlIntoPageSections(html) {
+  // Create a temporary container to parse the HTML
+  var container = document.createElement('div');
+  container.innerHTML = html;
+
+  var sections = [];
+  var currentHtml = '';
+
+  var children = container.childNodes;
+  for (var i = 0; i < children.length; i++) {
+    var node = children[i];
+
+    // Check for explicit page break (hr with page-break-after or page-break-before)
+    if (node.nodeType === 1) { // Element node
+      var style = node.getAttribute('style') || '';
+      var tagName = node.tagName.toLowerCase();
+
+      // Detect page break elements
+      if (style.indexOf('page-break-after:always') !== -1 ||
+          style.indexOf('page-break-before:always') !== -1 ||
+          (tagName === 'hr' && style.indexOf('page-break') !== -1)) {
+        // Push current accumulated content
+        if (currentHtml.trim()) {
+          sections.push({ html: currentHtml, isPageBreak: false });
+          currentHtml = '';
+        }
+        sections.push({ html: '', isPageBreak: true });
+        continue;
+      }
+
+      // Group small elements together, but keep tables and large blocks separate
+      if (tagName === 'table' || tagName === 'h1' || tagName === 'h2' || tagName === 'h3' || tagName === 'h4') {
+        // Push accumulated content first
+        if (currentHtml.trim()) {
+          sections.push({ html: currentHtml, isPageBreak: false });
+          currentHtml = '';
+        }
+        // Push this block element as its own section
+        sections.push({ html: node.outerHTML, isPageBreak: false });
+        continue;
+      }
     }
 
-    pdf.save(filename);
-    showToast('PDF généré !', 'success');
+    // Accumulate content (paragraphs, text, inline elements)
+    if (node.nodeType === 1) {
+      currentHtml += node.outerHTML;
+    } else if (node.nodeType === 3 && node.textContent.trim()) {
+      currentHtml += node.textContent;
+    }
 
-  } catch (error) {
-    console.error('PDF error:', error);
-    showToast(t('pdfError') + error.message, 'error');
+    // Flush accumulated content every few paragraphs to keep blocks manageable
+    var tempCheck = document.createElement('div');
+    tempCheck.innerHTML = currentHtml;
+    var pCount = tempCheck.querySelectorAll('p, li, blockquote, div').length;
+    if (pCount >= 5) {
+      sections.push({ html: currentHtml, isPageBreak: false });
+      currentHtml = '';
+    }
   }
+
+  // Push remaining content
+  if (currentHtml.trim()) {
+    sections.push({ html: currentHtml, isPageBreak: false });
+  }
+
+  // If no sections were created, return the whole HTML as one section
+  if (sections.length === 0) {
+    sections.push({ html: html, isPageBreak: false });
+  }
+
+  return sections;
 }
