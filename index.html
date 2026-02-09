@@ -257,14 +257,45 @@
     .preview-nav .record-info strong { color: #1e293b; }
     .preview-page {
       background: white;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
       padding: 40px 60px;
       min-height: 500px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.12);
       font-family: 'Times New Roman', Times, serif;
       font-size: 14px;
       line-height: 1.6;
+    }
+    .preview-pages-wrapper {
+      background: #f1f5f9;
+      padding: 20px;
+      border-radius: 8px;
+    }
+    .preview-pages-wrapper.preview-format-a4 {
+      max-width: 794px;
+      margin: 0 auto;
+    }
+    .preview-pages-wrapper.preview-format-a4 .preview-page {
+      min-height: 1123px;
+      width: 100%;
+    }
+    .preview-pages-wrapper.preview-format-letter {
+      max-width: 816px;
+      margin: 0 auto;
+    }
+    .preview-pages-wrapper.preview-format-letter .preview-page {
+      min-height: 1056px;
+      width: 100%;
+    }
+    .preview-page + .preview-page {
+      margin-top: 20px;
+    }
+    .preview-page-number {
+      text-align: center;
+      font-size: 11px;
+      color: #94a3b8;
+      padding: 6px 0;
+      font-weight: 600;
     }
     .preview-page .var-resolved {
       font-weight: 700;
@@ -567,10 +598,12 @@
         </div>
 
         <!-- PREVIEW PAGE -->
-        <div class="preview-page" id="preview-page">
-          <p style="color: #94a3b8; text-align: center; padding: 40px;" data-i18n="previewEmpty">
-            Sélectionnez une table et créez un modèle pour voir la prévisualisation.
-          </p>
+        <div class="preview-pages-wrapper preview-format-a4" id="preview-pages-wrapper">
+          <div class="preview-page" id="preview-page">
+            <p style="color: #94a3b8; text-align: center; padding: 40px;" data-i18n="previewEmpty">
+              Sélectionnez une table et créez un modèle pour voir la prévisualisation.
+            </p>
+          </div>
         </div>
 
       </div>

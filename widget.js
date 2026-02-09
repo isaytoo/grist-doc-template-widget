@@ -629,9 +629,19 @@ function renderPreview() {
   var count = getRecordCount();
   document.getElementById('record-total').textContent = count;
 
+  var wrapper = document.getElementById('preview-pages-wrapper');
+
+  // Sync preview format with editor format
+  var editorFormat = document.getElementById('editor-page-format');
+  if (editorFormat && wrapper) {
+    var fmt = editorFormat.value;
+    wrapper.className = 'preview-pages-wrapper';
+    if (fmt === 'a4') wrapper.classList.add('preview-format-a4');
+    else if (fmt === 'letter') wrapper.classList.add('preview-format-letter');
+  }
+
   if (!templateHtml || !selectedTable || count === 0) {
-    document.getElementById('preview-page').innerHTML =
-      '<p style="color:#94a3b8; text-align:center; padding:40px;">' + t('previewEmpty') + '</p>';
+    wrapper.innerHTML = '<div class="preview-page"><p style="color:#94a3b8; text-align:center; padding:40px;">' + t('previewEmpty') + '</p></div>';
     document.getElementById('record-current').textContent = '0';
     return;
   }
@@ -643,7 +653,41 @@ function renderPreview() {
 
   var record = getRecordAt(currentRecordIndex);
   var resolved = resolveTemplate(templateHtml, record);
-  document.getElementById('preview-page').innerHTML = resolved;
+
+  // Split at page break markers to show separate visual pages
+  var pages = splitPreviewIntoPages(resolved);
+  var html = '';
+  for (var p = 0; p < pages.length; p++) {
+    html += '<div class="preview-page">' + pages[p] + '</div>';
+    if (p < pages.length - 1) {
+      html += '<div class="preview-page-number">' +
+        (currentLang === 'fr' ? 'Page ' : 'Page ') + (p + 1) + ' / ' + pages.length +
+        '</div>';
+    }
+  }
+  if (pages.length > 1) {
+    html += '<div class="preview-page-number">' +
+      (currentLang === 'fr' ? 'Page ' : 'Page ') + pages.length + ' / ' + pages.length +
+      '</div>';
+  }
+  wrapper.innerHTML = html;
+}
+
+function splitPreviewIntoPages(html) {
+  // Split on page-break-marker divs
+  var parts = html.split(/<div[^>]*class="page-break-marker"[^>]*>[\s\S]*?<\/div>/g);
+  // Also split on invisible page-break divs
+  parts = parts.reduce(function(acc, part) {
+    var subParts = part.split(/<div[^>]*style="[^"]*page-break-after:\s*always[^"]*"[^>]*>\s*<\/div>/g);
+    return acc.concat(subParts);
+  }, []);
+  // Also split on hr with page-break
+  parts = parts.reduce(function(acc, part) {
+    var subParts = part.split(/<hr[^>]*style="[^"]*page-break[^"]*"[^>]*\/?>/g);
+    return acc.concat(subParts);
+  }, []);
+  // Filter out empty pages
+  return parts.filter(function(p) { return p.trim().length > 0; });
 }
 
 function prevRecord() {
