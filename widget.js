@@ -332,8 +332,9 @@ function insertVariable(colName) {
 function initEditor() {
   editorInstance = Jodit.make('#editor-container', {
     language: currentLang,
-    height: 500,
+    minHeight: 500,
     placeholder: currentLang === 'fr' ? 'Commencez à écrire votre document ici...' : 'Start writing your document here...',
+    allowResizeY: true,
     toolbarAdaptive: false,
     askBeforePasteHTML: false,
     askBeforePasteFromWord: false,

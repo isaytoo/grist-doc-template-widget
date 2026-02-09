@@ -246,7 +246,7 @@
       border: 1px solid #cbd5e1;
     }
     .editor-page-a4 .jodit-wysiwyg {
-      min-height: 1123px !important; /* 297mm at 96dpi */
+      min-height: 600px !important;
       padding: 40px 60px !important;
     }
     .editor-page-letter {
@@ -261,7 +261,7 @@
       border: 1px solid #cbd5e1;
     }
     .editor-page-letter .jodit-wysiwyg {
-      min-height: 1056px !important; /* 11in at 96dpi */
+      min-height: 600px !important;
       padding: 40px 60px !important;
     }
     .editor-page-free .editor-wrapper {
@@ -510,11 +510,51 @@
     .table-selector {
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 10px;
+      gap: 10px;
+      margin-bottom: 14px;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
-    .table-selector label { font-weight: 600; font-size: 12px; white-space: nowrap; }
-    .table-selector select { flex: 1; }
+    .table-selector label {
+      font-weight: 700;
+      font-size: 13px;
+      white-space: nowrap;
+      color: #475569;
+    }
+    .table-selector select {
+      flex: 1;
+      padding: 8px 14px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #1e293b;
+      background: #f8fafc;
+      cursor: pointer;
+      transition: all 0.2s;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237c3aed' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+    }
+    .table-selector select:hover {
+      border-color: #a78bfa;
+      background-color: #faf5ff;
+    }
+    .table-selector select:focus {
+      outline: none;
+      border-color: #7c3aed;
+      box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
+    }
+    .table-selector .spinner {
+      width: 18px;
+      height: 18px;
+    }
   </style>
 </head>
 <body>
