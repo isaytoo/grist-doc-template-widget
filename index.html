@@ -596,14 +596,27 @@
           </div>
         </div>
 
-        <!-- SAVE TEMPLATE -->
-        <div style="margin-top: 10px; display: flex; gap: 8px;">
-          <button class="btn btn-primary" onclick="saveTemplate()">
-            💾 <span data-i18n="saveTemplate">Sauvegarder le modèle</span>
-          </button>
-          <button class="btn btn-secondary" onclick="clearEditor()">
-            🗑️ <span data-i18n="clearEditor">Vider l'éditeur</span>
-          </button>
+        <!-- TEMPLATE MANAGEMENT -->
+        <div class="template-manager" style="margin-top:14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+            <label style="font-size:13px;font-weight:600;color:#475569;white-space:nowrap;" data-i18n="templateSelect">Modèles enregistrés :</label>
+            <select id="template-list" onchange="onTemplateSelectChange()" style="flex:1;min-width:180px;padding:5px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;">
+              <option value="">-- Nouveau modèle --</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" onclick="deleteSelectedTemplate()" id="btn-delete-template" style="display:none;">
+              🗑️ <span data-i18n="templateDelete">Supprimer</span>
+            </button>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <label style="font-size:13px;font-weight:600;color:#475569;white-space:nowrap;" data-i18n="templateName">Nom du modèle :</label>
+            <input type="text" id="template-name-input" placeholder="Ex: Courrier standard, PV réunion..." style="flex:1;min-width:180px;padding:5px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;" />
+            <button class="btn btn-primary btn-sm" onclick="saveTemplate()">
+              💾 <span data-i18n="saveTemplate">Sauvegarder</span>
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="clearEditor()">
+              🗑️ <span data-i18n="clearEditor">Vider</span>
+            </button>
+          </div>
         </div>
 
       </div>
@@ -650,6 +663,12 @@
           </p>
 
           <div class="pdf-options">
+            <div class="form-group">
+              <label data-i18n="templateSelect">Modèle :</label>
+              <select id="pdf-template-select" onchange="onPdfTemplateChange()">
+                <option value="">-- Modèle actuel de l'éditeur --</option>
+              </select>
+            </div>
             <div class="form-group">
               <label data-i18n="pdfFilename">Nom du fichier :</label>
               <input type="text" id="pdf-filename" placeholder="document_publipostage" />

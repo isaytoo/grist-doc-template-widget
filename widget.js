@@ -57,7 +57,15 @@ var i18n = {
     pdfCancelled: 'Génération annulée. PDF partiel sauvegardé ({count} pages).',
     noTemplate: 'Aucun modèle. Créez d\'abord un document dans l\'onglet Éditeur.',
     noData: 'Aucune donnée dans la table sélectionnée.',
-    editorPlaceholder: '<p style="color:#94a3b8;">Commencez à écrire votre document ici... Utilisez les variables ci-dessus pour insérer des champs dynamiques.</p>'
+    editorPlaceholder: '<p style="color:#94a3b8;">Commencez à écrire votre document ici... Utilisez les variables ci-dessus pour insérer des champs dynamiques.</p>',
+    templateName: 'Nom du modèle :',
+    templateNamePlaceholder: 'Ex: Courrier standard, PV réunion...',
+    templateSelect: 'Modèles enregistrés :',
+    templateSelectDefault: '-- Nouveau modèle --',
+    templateDeleteConfirm: 'Supprimer le modèle "{name}" ?',
+    templateDeleted: 'Modèle "{name}" supprimé.',
+    templateDelete: 'Supprimer',
+    templateLoad: 'Charger'
   },
   en: {
     title: 'Document Template',
@@ -101,7 +109,15 @@ var i18n = {
     pdfCancelled: 'Generation cancelled. Partial PDF saved ({count} pages).',
     noTemplate: 'No template. Create a document in the Editor tab first.',
     noData: 'No data in the selected table.',
-    editorPlaceholder: '<p style="color:#94a3b8;">Start writing your document here... Use the variables above to insert dynamic fields.</p>'
+    editorPlaceholder: '<p style="color:#94a3b8;">Start writing your document here... Use the variables above to insert dynamic fields.</p>',
+    templateName: 'Template name:',
+    templateNamePlaceholder: 'E.g.: Standard letter, Meeting notes...',
+    templateSelect: 'Saved templates:',
+    templateSelectDefault: '-- New template --',
+    templateDeleteConfirm: 'Delete template "{name}"?',
+    templateDeleted: 'Template "{name}" deleted.',
+    templateDelete: 'Delete',
+    templateLoad: 'Load'
   }
 };
 
@@ -192,6 +208,9 @@ function switchTab(tabId) {
   });
   if (tabId === 'preview') {
     renderPreview();
+  }
+  if (tabId === 'pdf') {
+    refreshPdfTemplateList();
   }
 }
 
@@ -395,48 +414,173 @@ function setEditorHtml(html) {
   editorInstance.value = html;
 }
 
+// --- Multi-template management ---
+
+var currentTemplateName = '';
+
+async function getTemplateIndex() {
+  // Returns { templates: [ { name: "...", html: "..." }, ... ] }
+  try {
+    var idx = await grist.widgetApi.getOption('templateIndex_' + selectedTable);
+    if (idx && Array.isArray(idx.templates)) return idx;
+  } catch (e) {}
+  // Fallback to localStorage
+  try {
+    var local = localStorage.getItem(TEMPLATE_STORAGE_KEY + 'index_' + selectedTable);
+    if (local) {
+      var parsed = JSON.parse(local);
+      if (parsed && Array.isArray(parsed.templates)) return parsed;
+    }
+  } catch (e) {}
+  return { templates: [] };
+}
+
+async function saveTemplateIndex(index) {
+  try {
+    await grist.widgetApi.setOption('templateIndex_' + selectedTable, index);
+  } catch (e) {
+    console.warn('Could not save template index to Grist:', e);
+  }
+  try {
+    localStorage.setItem(TEMPLATE_STORAGE_KEY + 'index_' + selectedTable, JSON.stringify(index));
+  } catch (e) {}
+}
+
+async function refreshTemplateList() {
+  var select = document.getElementById('template-list');
+  if (!select) return;
+  var index = await getTemplateIndex();
+  select.innerHTML = '<option value="">' + t('templateSelectDefault') + '</option>';
+  for (var i = 0; i < index.templates.length; i++) {
+    var opt = document.createElement('option');
+    opt.value = index.templates[i].name;
+    opt.textContent = index.templates[i].name;
+    if (index.templates[i].name === currentTemplateName) opt.selected = true;
+    select.appendChild(opt);
+  }
+  // Show/hide delete button
+  var delBtn = document.getElementById('btn-delete-template');
+  if (delBtn) delBtn.style.display = select.value ? '' : 'none';
+}
+
+function onTemplateSelectChange() {
+  var select = document.getElementById('template-list');
+  var nameInput = document.getElementById('template-name-input');
+  var delBtn = document.getElementById('btn-delete-template');
+  if (!select) return;
+  if (select.value) {
+    // Load selected template
+    loadTemplateByName(select.value);
+    if (nameInput) nameInput.value = select.value;
+    if (delBtn) delBtn.style.display = '';
+  } else {
+    // New template mode
+    if (nameInput) nameInput.value = '';
+    currentTemplateName = '';
+    if (delBtn) delBtn.style.display = 'none';
+  }
+}
+
+async function loadTemplateByName(name) {
+  var index = await getTemplateIndex();
+  for (var i = 0; i < index.templates.length; i++) {
+    if (index.templates[i].name === name) {
+      setEditorHtml(index.templates[i].html);
+      templateHtml = index.templates[i].html;
+      currentTemplateName = name;
+      showToast(t('templateLoaded'), 'info');
+      return;
+    }
+  }
+}
+
 async function saveTemplate() {
   if (!editorInstance) return;
   templateHtml = getEditorHtml();
-  if (selectedTable) {
-    // Save to localStorage as backup
-    try {
-      localStorage.setItem(TEMPLATE_STORAGE_KEY + selectedTable, templateHtml);
-    } catch (e) { /* localStorage may not be available in iframe */ }
-    // Save to Grist widget options (persistent, shared)
-    try {
-      await grist.widgetApi.setOption('template_' + selectedTable, templateHtml);
-      await grist.widgetApi.setOption('template', true); // flag that we have templates
-      console.log('Template saved to Grist options for', selectedTable);
-    } catch (e) {
-      console.warn('Could not save to Grist options:', e);
+  if (!selectedTable) return;
+
+  var nameInput = document.getElementById('template-name-input');
+  var name = (nameInput ? nameInput.value.trim() : '') || currentTemplateName;
+  if (!name) {
+    // Prompt for name
+    name = prompt(t('templateName'), t('templateNamePlaceholder'));
+    if (!name || !name.trim()) return;
+    name = name.trim();
+  }
+
+  var index = await getTemplateIndex();
+  // Update existing or add new
+  var found = false;
+  for (var i = 0; i < index.templates.length; i++) {
+    if (index.templates[i].name === name) {
+      index.templates[i].html = templateHtml;
+      found = true;
+      break;
     }
   }
+  if (!found) {
+    index.templates.push({ name: name, html: templateHtml });
+  }
+
+  await saveTemplateIndex(index);
+  currentTemplateName = name;
+  if (nameInput) nameInput.value = name;
+  await refreshTemplateList();
   showToast(t('templateSaved'), 'success');
 }
 
 async function loadSavedTemplate() {
-  // Try loading from Grist widget options first
-  try {
-    var options = await grist.widgetApi.getOption('template_' + selectedTable);
-    if (options && editorInstance) {
-      setEditorHtml(options);
-      templateHtml = options;
-      showToast(t('templateLoaded'), 'info');
-      return;
-    }
-  } catch (e) {
-    console.warn('Could not load from Grist options:', e);
+  var index = await getTemplateIndex();
+  if (index.templates.length > 0) {
+    // Load the first template by default
+    var tpl = index.templates[0];
+    setEditorHtml(tpl.html);
+    templateHtml = tpl.html;
+    currentTemplateName = tpl.name;
+    var nameInput = document.getElementById('template-name-input');
+    if (nameInput) nameInput.value = tpl.name;
+    showToast(t('templateLoaded'), 'info');
+  } else {
+    // Legacy: try old single-template format
+    try {
+      var legacy = await grist.widgetApi.getOption('template_' + selectedTable);
+      if (legacy && editorInstance) {
+        setEditorHtml(legacy);
+        templateHtml = legacy;
+        showToast(t('templateLoaded'), 'info');
+        return;
+      }
+    } catch (e) {}
+    try {
+      var saved = localStorage.getItem(TEMPLATE_STORAGE_KEY + selectedTable);
+      if (saved && editorInstance) {
+        setEditorHtml(saved);
+        templateHtml = saved;
+        showToast(t('templateLoaded'), 'info');
+      }
+    } catch (e) {}
   }
-  // Fallback to localStorage
-  try {
-    var saved = localStorage.getItem(TEMPLATE_STORAGE_KEY + selectedTable);
-    if (saved && editorInstance) {
-      setEditorHtml(saved);
-      templateHtml = saved;
-      showToast(t('templateLoaded'), 'info');
-    }
-  } catch (e) { /* localStorage may not be available */ }
+  await refreshTemplateList();
+}
+
+async function deleteSelectedTemplate() {
+  var select = document.getElementById('template-list');
+  if (!select || !select.value) return;
+  var name = select.value;
+  var confirmed = await showModal(t('confirmClearTitle'), t('templateDeleteConfirm').replace('{name}', name));
+  if (!confirmed) return;
+
+  var index = await getTemplateIndex();
+  index.templates = index.templates.filter(function(tpl) { return tpl.name !== name; });
+  await saveTemplateIndex(index);
+
+  currentTemplateName = '';
+  var nameInput = document.getElementById('template-name-input');
+  if (nameInput) nameInput.value = '';
+  editorInstance.value = '';
+  templateHtml = '';
+  await refreshTemplateList();
+  showToast(t('templateDeleted').replace('{name}', name), 'info');
 }
 
 async function clearEditor() {
@@ -444,12 +588,43 @@ async function clearEditor() {
   if (confirmed && editorInstance) {
     editorInstance.value = '';
     templateHtml = '';
-    if (selectedTable) {
-      try { localStorage.removeItem(TEMPLATE_STORAGE_KEY + selectedTable); } catch (e) {}
-      // Also clear from Grist options
-      try { await grist.widgetApi.setOption('template_' + selectedTable, null); } catch (e) {}
-    }
+    currentTemplateName = '';
+    var nameInput = document.getElementById('template-name-input');
+    if (nameInput) nameInput.value = '';
+    var select = document.getElementById('template-list');
+    if (select) select.value = '';
+    var delBtn = document.getElementById('btn-delete-template');
+    if (delBtn) delBtn.style.display = 'none';
     showToast(t('templateCleared'), 'info');
+  }
+}
+
+// --- PDF template selector ---
+
+async function refreshPdfTemplateList() {
+  var select = document.getElementById('pdf-template-select');
+  if (!select) return;
+  var index = await getTemplateIndex();
+  var editorLabel = currentLang === 'fr' ? '-- Modèle actuel de l\'éditeur --' : '-- Current editor template --';
+  select.innerHTML = '<option value="">' + editorLabel + '</option>';
+  for (var i = 0; i < index.templates.length; i++) {
+    var opt = document.createElement('option');
+    opt.value = index.templates[i].name;
+    opt.textContent = index.templates[i].name;
+    select.appendChild(opt);
+  }
+}
+
+async function onPdfTemplateChange() {
+  var select = document.getElementById('pdf-template-select');
+  if (!select || !select.value) return;
+  // Load selected template into templateHtml for PDF generation
+  var index = await getTemplateIndex();
+  for (var i = 0; i < index.templates.length; i++) {
+    if (index.templates[i].name === select.value) {
+      templateHtml = index.templates[i].html;
+      return;
+    }
   }
 }
 
