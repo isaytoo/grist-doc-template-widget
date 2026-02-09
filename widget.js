@@ -485,10 +485,12 @@ function postProcessWordHtml(html) {
   // Add some spacing to paragraphs
   html = html.replace(/<p>/g, '<p style="margin-bottom:8px;">');
 
-  // Style tables if present
-  html = html.replace(/<table>/g, '<table style="border-collapse:collapse;width:100%;margin:10px 0;">');
-  html = html.replace(/<td>/g, '<td style="border:1px solid #e2e8f0;padding:6px 10px;">');
-  html = html.replace(/<th>/g, '<th style="border:1px solid #e2e8f0;padding:6px 10px;background:#f8fafc;font-weight:bold;">');
+  // Style tables - no visible borders, just padding for layout
+  html = html.replace(/<table>/g, '<table style="border-collapse:collapse;width:100%;margin:10px 0;border:none;">');
+  html = html.replace(/<td>/g, '<td style="border:none;padding:6px 10px;vertical-align:top;">');
+  html = html.replace(/<td /g, '<td style="border:none;padding:6px 10px;vertical-align:top;" ');
+  html = html.replace(/<th>/g, '<th style="border:none;padding:6px 10px;font-weight:bold;vertical-align:top;">');
+  html = html.replace(/<th /g, '<th style="border:none;padding:6px 10px;font-weight:bold;vertical-align:top;" ');
 
   return html;
 }
@@ -550,12 +552,26 @@ function resolveTemplate(html, record, forPdf) {
       }
     }
   }
-  // For PDF: strip any remaining background-color styles from Quill variable formatting
+  // For PDF: strip variable styling and table borders
   if (forPdf) {
     resolved = resolved.replace(/background-color:\s*rgb\(243,\s*232,\s*255\);?/g, '');
     resolved = resolved.replace(/background-color:\s*#f3e8ff;?/g, '');
     resolved = resolved.replace(/color:\s*rgb\(124,\s*58,\s*237\);?/g, '');
     resolved = resolved.replace(/color:\s*#7c3aed;?/g, '');
+    // Strip all table/cell borders for clean PDF
+    resolved = resolved.replace(/(<table[^>]*?)style="[^"]*"/g, function(m, pre) {
+      return pre + 'style="border-collapse:collapse;width:100%;border:none;"';
+    });
+    resolved = resolved.replace(/(<td[^>]*?)style="[^"]*"/g, function(m, pre) {
+      return pre + 'style="border:none;padding:6px 10px;vertical-align:top;"';
+    });
+    resolved = resolved.replace(/(<th[^>]*?)style="[^"]*"/g, function(m, pre) {
+      return pre + 'style="border:none;padding:6px 10px;font-weight:bold;vertical-align:top;"';
+    });
+    // Also handle tables/cells without style attribute
+    resolved = resolved.replace(/<table(?![^>]*style=)/g, '<table style="border-collapse:collapse;width:100%;border:none;"');
+    resolved = resolved.replace(/<td(?![^>]*style=)/g, '<td style="border:none;padding:6px 10px;vertical-align:top;"');
+    resolved = resolved.replace(/<th(?![^>]*style=)/g, '<th style="border:none;padding:6px 10px;font-weight:bold;vertical-align:top;"');
   }
   return resolved;
 }
