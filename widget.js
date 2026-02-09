@@ -313,8 +313,8 @@ function initEditor() {
         tooltip: currentLang === 'fr' ? 'Saut de page' : 'Page break',
         exec: function(editor) {
           editor.selection.insertHTML(
-            '<div class="page-break-marker" contenteditable="false" style="border:none;border-top:3px dashed #ef4444;margin:20px 0;padding:8px 0;text-align:center;color:#ef4444;font-size:12px;font-weight:600;cursor:default;page-break-after:always;">' +
-            '✂ ── ' + (currentLang === 'fr' ? 'SAUT DE PAGE' : 'PAGE BREAK') + ' ──' +
+            '<div class="page-break-marker" contenteditable="false" style="page-break-after:always;">' +
+            '✂ ' + (currentLang === 'fr' ? 'Saut de page' : 'Page break') +
             '</div>'
           );
         }

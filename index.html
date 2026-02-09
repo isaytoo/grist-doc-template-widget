@@ -189,15 +189,45 @@
     .jodit-wysiwyg { font-family: 'Times New Roman', Times, serif; font-size: 14px; line-height: 1.6; }
     .jodit-wysiwyg .page-break-marker {
       border: none !important;
-      border-top: 3px dashed #ef4444 !important;
-      margin: 20px 0;
-      padding: 8px 0;
+      border-top: none !important;
+      margin: 0 -60px;
+      padding: 0;
       text-align: center;
-      color: #ef4444;
-      font-size: 12px;
+      color: #94a3b8;
+      font-size: 11px;
       font-weight: 600;
       cursor: default;
       user-select: none;
+      position: relative;
+      height: 80px;
+      background:
+        linear-gradient(to bottom, #f1f5f9 0%, #e2e8f0 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow:
+        inset 0 8px 12px -6px rgba(0,0,0,0.08),
+        inset 0 -8px 12px -6px rgba(0,0,0,0.08);
+    }
+    .jodit-wysiwyg .page-break-marker::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: #cbd5e1;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .jodit-wysiwyg .page-break-marker::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: #cbd5e1;
+      box-shadow: 0 -1px 3px rgba(0,0,0,0.1);
     }
 
     /* ========== PAGE FORMAT VISUAL ========== */
