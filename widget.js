@@ -475,10 +475,14 @@ function onTemplateSelectChange() {
     if (nameInput) nameInput.value = select.value;
     if (delBtn) delBtn.style.display = '';
   } else {
-    // New template mode
+    // New template mode — clear editor
     if (nameInput) nameInput.value = '';
     currentTemplateName = '';
     if (delBtn) delBtn.style.display = 'none';
+    if (editorInstance) {
+      editorInstance.value = '';
+      templateHtml = '';
+    }
   }
 }
 
