@@ -440,25 +440,48 @@ function getRecordAt(index) {
   return record;
 }
 
-function resolveTemplate(html, record) {
+function resolveTemplate(html, record, forPdf) {
   var resolved = html;
   for (var col in record) {
     var val = record[col];
     var display = (val === null || val === undefined || val === '') ? '' : String(val);
-    // Replace styled spans
+    // Replace styled spans (Quill wraps variables in <span style="...">)
     var styledRegex = new RegExp('<span[^>]*>\\{\\{' + escapeRegex(col) + '\\}\\}</span>', 'g');
     if (display) {
-      resolved = resolved.replace(styledRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
+      if (forPdf) {
+        resolved = resolved.replace(styledRegex, '<strong>' + sanitize(display) + '</strong>');
+      } else {
+        resolved = resolved.replace(styledRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
+      }
     } else {
-      resolved = resolved.replace(styledRegex, '<span class="var-empty">[' + col + ': vide]</span>');
+      if (forPdf) {
+        resolved = resolved.replace(styledRegex, '<em>[' + col + ']</em>');
+      } else {
+        resolved = resolved.replace(styledRegex, '<span class="var-empty">[' + col + ': vide]</span>');
+      }
     }
-    // Replace plain text
+    // Replace plain text {{col}}
     var plainRegex = new RegExp('\\{\\{' + escapeRegex(col) + '\\}\\}', 'g');
     if (display) {
-      resolved = resolved.replace(plainRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
+      if (forPdf) {
+        resolved = resolved.replace(plainRegex, '<strong>' + sanitize(display) + '</strong>');
+      } else {
+        resolved = resolved.replace(plainRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
+      }
     } else {
-      resolved = resolved.replace(plainRegex, '<span class="var-empty">[' + col + ': vide]</span>');
+      if (forPdf) {
+        resolved = resolved.replace(plainRegex, '<em>[' + col + ']</em>');
+      } else {
+        resolved = resolved.replace(plainRegex, '<span class="var-empty">[' + col + ': vide]</span>');
+      }
     }
+  }
+  // For PDF: strip any remaining background-color styles from Quill variable formatting
+  if (forPdf) {
+    resolved = resolved.replace(/background-color:\s*rgb\(243,\s*232,\s*255\);?/g, '');
+    resolved = resolved.replace(/background-color:\s*#f3e8ff;?/g, '');
+    resolved = resolved.replace(/color:\s*rgb\(124,\s*58,\s*237\);?/g, '');
+    resolved = resolved.replace(/color:\s*#7c3aed;?/g, '');
   }
   return resolved;
 }
@@ -524,7 +547,7 @@ async function generateSinglePdf() {
   }
 
   var record = getRecordAt(currentRecordIndex);
-  var resolved = resolveTemplate(templateHtml, record);
+  var resolved = resolveTemplate(templateHtml, record, true);
   await generatePdfFromHtml(resolved, 'document_' + (currentRecordIndex + 1) + '.pdf');
 }
 
@@ -578,20 +601,27 @@ async function generatePdf() {
         t('pdfGenerating').replace('{current}', i - startIdx + 1).replace('{total}', totalPages) + '</div>';
 
       var record = getRecordAt(i);
-      var resolved = resolveTemplate(templateHtml, record);
+      var resolved = resolveTemplate(templateHtml, record, true);
 
       // Render to a temporary div
       var tempDiv = document.createElement('div');
-      tempDiv.style.cssText = 'position:absolute;left:-9999px;top:0;width:' + (pageSize === 'a4' ? '794' : '816') + 'px;padding:40px 60px;font-family:"Times New Roman",Times,serif;font-size:14px;line-height:1.6;background:white;';
+      tempDiv.style.cssText = 'position:fixed;left:0;top:0;width:' + (pageSize === 'a4' ? '794' : '816') + 'px;padding:40px 60px;font-family:"Times New Roman",Times,serif;font-size:14px;line-height:1.6;background:white;z-index:-1;opacity:0;';
       tempDiv.innerHTML = resolved;
       document.body.appendChild(tempDiv);
+
+      // Wait for layout to settle
+      await new Promise(function(resolve) { setTimeout(resolve, 100); });
 
       // Use html2canvas
       var canvas = await html2canvas(tempDiv, {
         scale: 2,
         useCORS: true,
         logging: false,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: tempDiv.scrollWidth,
+        windowHeight: tempDiv.scrollHeight
       });
 
       document.body.removeChild(tempDiv);
@@ -662,15 +692,22 @@ async function generatePdfFromHtml(html, filename) {
     var pageHeight = pdf.internal.pageSize.getHeight();
 
     var tempDiv = document.createElement('div');
-    tempDiv.style.cssText = 'position:absolute;left:-9999px;top:0;width:' + (pageSize === 'a4' ? '794' : '816') + 'px;padding:40px 60px;font-family:"Times New Roman",Times,serif;font-size:14px;line-height:1.6;background:white;';
+    tempDiv.style.cssText = 'position:fixed;left:0;top:0;width:' + (pageSize === 'a4' ? '794' : '816') + 'px;padding:40px 60px;font-family:"Times New Roman",Times,serif;font-size:14px;line-height:1.6;background:white;z-index:-1;opacity:0;';
     tempDiv.innerHTML = html;
     document.body.appendChild(tempDiv);
+
+    // Wait for layout to settle
+    await new Promise(function(resolve) { setTimeout(resolve, 100); });
 
     var canvas = await html2canvas(tempDiv, {
       scale: 2,
       useCORS: true,
       logging: false,
-      backgroundColor: '#ffffff'
+      backgroundColor: '#ffffff',
+      scrollX: 0,
+      scrollY: 0,
+      windowWidth: tempDiv.scrollWidth,
+      windowHeight: tempDiv.scrollHeight
     });
 
     document.body.removeChild(tempDiv);
