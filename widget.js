@@ -53,6 +53,8 @@ var i18n = {
     confirmClearTitle: 'Vider l\'éditeur',
     cancel: 'Annuler',
     confirm: 'Confirmer',
+    pdfCancel: 'Annuler (conserver le partiel)',
+    pdfCancelled: 'Génération annulée. PDF partiel sauvegardé ({count} pages).',
     noTemplate: 'Aucun modèle. Créez d\'abord un document dans l\'onglet Éditeur.',
     noData: 'Aucune donnée dans la table sélectionnée.',
     editorPlaceholder: '<p style="color:#94a3b8;">Commencez à écrire votre document ici... Utilisez les variables ci-dessus pour insérer des champs dynamiques.</p>'
@@ -95,6 +97,8 @@ var i18n = {
     confirmClearTitle: 'Clear editor',
     cancel: 'Cancel',
     confirm: 'Confirm',
+    pdfCancel: 'Cancel (keep partial)',
+    pdfCancelled: 'Generation cancelled. Partial PDF saved ({count} pages).',
     noTemplate: 'No template. Create a document in the Editor tab first.',
     noData: 'No data in the selected table.',
     editorPlaceholder: '<p style="color:#94a3b8;">Start writing your document here... Use the variables above to insert dynamic fields.</p>'
@@ -173,6 +177,7 @@ var currentRecordIndex = 0;
 var templateHtml = '';
 var editorInstance = null;
 var TEMPLATE_STORAGE_KEY = 'grist_doc_template_';
+var pdfCancelled = false;
 
 // =============================================================================
 // TABS
@@ -559,6 +564,10 @@ async function generateSinglePdf() {
   await generatePdfFromHtml(resolved, 'document_' + (currentRecordIndex + 1) + '.pdf');
 }
 
+function cancelPdf() {
+  pdfCancelled = true;
+}
+
 async function generatePdf() {
   if (!templateHtml && editorInstance) {
     templateHtml = getEditorHtml();
@@ -578,12 +587,17 @@ async function generatePdf() {
   var pageSize = document.getElementById('pdf-page-size').value;
 
   var btn = document.getElementById('pdf-generate-btn');
+  var cancelBtn = document.getElementById('pdf-cancel-btn');
   btn.disabled = true;
+  cancelBtn.classList.remove('hidden');
+  pdfCancelled = false;
   var progressBar = document.getElementById('pdf-progress');
   var progressFill = document.getElementById('pdf-progress-fill');
   var messageDiv = document.getElementById('pdf-message');
   progressBar.classList.remove('hidden');
   messageDiv.classList.remove('hidden');
+
+  var pagesGenerated = 0;
 
   try {
     var jsPDF = window.jspdf.jsPDF;
@@ -603,6 +617,9 @@ async function generatePdf() {
     var pageHeight = pdf.internal.pageSize.getHeight();
 
     for (var i = startIdx; i < endIdx; i++) {
+      // Check cancel
+      if (pdfCancelled) break;
+
       var progress = Math.round(((i - startIdx + 1) / totalPages) * 100);
       progressFill.style.width = progress + '%';
       messageDiv.innerHTML = '<div class="message message-info">' +
@@ -619,6 +636,12 @@ async function generatePdf() {
 
       // Wait for layout to settle
       await new Promise(function(resolve) { setTimeout(resolve, 100); });
+
+      // Check cancel again after wait
+      if (pdfCancelled) {
+        document.body.removeChild(tempDiv);
+        break;
+      }
 
       // Use html2canvas
       var canvas = await html2canvas(tempDiv, {
@@ -668,17 +691,26 @@ async function generatePdf() {
         yOffset += availableHeight;
       }
 
+      pagesGenerated = i - startIdx + 1;
+
       // Yield to UI
       await new Promise(function(resolve) { setTimeout(resolve, 50); });
     }
 
-    // Save
+    // Save (full or partial)
     pdf.save(filename + '.pdf');
 
-    progressFill.style.width = '100%';
-    messageDiv.innerHTML = '<div class="message message-success">' +
-      t('pdfDone').replace('{count}', totalPages) + '</div>';
-    showToast(t('pdfDone').replace('{count}', totalPages), 'success');
+    if (pdfCancelled && pagesGenerated > 0) {
+      progressFill.style.width = Math.round((pagesGenerated / totalPages) * 100) + '%';
+      messageDiv.innerHTML = '<div class="message message-warning" style="background:#fffbeb;color:#92400e;border:1px solid #fde68a;">' +
+        t('pdfCancelled').replace('{count}', pagesGenerated) + '</div>';
+      showToast(t('pdfCancelled').replace('{count}', pagesGenerated), 'warning');
+    } else {
+      progressFill.style.width = '100%';
+      messageDiv.innerHTML = '<div class="message message-success">' +
+        t('pdfDone').replace('{count}', totalPages) + '</div>';
+      showToast(t('pdfDone').replace('{count}', totalPages), 'success');
+    }
 
   } catch (error) {
     console.error('PDF generation error:', error);
@@ -686,6 +718,8 @@ async function generatePdf() {
     showToast(t('pdfError') + error.message, 'error');
   } finally {
     btn.disabled = false;
+    cancelBtn.classList.add('hidden');
+    pdfCancelled = false;
   }
 }
 

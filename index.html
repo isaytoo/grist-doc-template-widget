@@ -555,6 +555,9 @@
             <button class="btn btn-success" id="pdf-generate-btn" onclick="generatePdf()">
               📥 <span data-i18n="pdfGenerate">Générer le PDF</span>
             </button>
+            <button class="btn btn-danger hidden" id="pdf-cancel-btn" onclick="cancelPdf()">
+              ❌ <span data-i18n="pdfCancel">Annuler (conserver le partiel)</span>
+            </button>
           </div>
 
           <div class="progress-bar hidden" id="pdf-progress">
