@@ -613,7 +613,7 @@ async function generatePdf() {
 
       // Render to a temporary div
       var tempDiv = document.createElement('div');
-      tempDiv.style.cssText = 'position:fixed;left:0;top:0;width:' + (pageSize === 'a4' ? '794' : '816') + 'px;padding:40px 60px;font-family:"Times New Roman",Times,serif;font-size:14px;line-height:1.6;background:white;z-index:-1;opacity:0;';
+      tempDiv.style.cssText = 'position:absolute;left:-9999px;top:0;width:' + (pageSize === 'a4' ? '794' : '816') + 'px;padding:40px 60px;font-family:"Times New Roman",Times,serif;font-size:14px;line-height:1.6;background:white;';
       tempDiv.innerHTML = resolved;
       document.body.appendChild(tempDiv);
 
@@ -700,7 +700,7 @@ async function generatePdfFromHtml(html, filename) {
     var pageHeight = pdf.internal.pageSize.getHeight();
 
     var tempDiv = document.createElement('div');
-    tempDiv.style.cssText = 'position:fixed;left:0;top:0;width:' + (pageSize === 'a4' ? '794' : '816') + 'px;padding:40px 60px;font-family:"Times New Roman",Times,serif;font-size:14px;line-height:1.6;background:white;z-index:-1;opacity:0;';
+    tempDiv.style.cssText = 'position:absolute;left:-9999px;top:0;width:' + (pageSize === 'a4' ? '794' : '816') + 'px;padding:40px 60px;font-family:"Times New Roman",Times,serif;font-size:14px;line-height:1.6;background:white;';
     tempDiv.innerHTML = html;
     document.body.appendChild(tempDiv);
 
