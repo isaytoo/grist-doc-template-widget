@@ -422,12 +422,12 @@ var currentTemplateName = '';
 async function getTemplateIndex() {
   // Returns { templates: [ { name: "...", html: "..." }, ... ] }
   try {
-    var idx = await grist.widgetApi.getOption('templateIndex_' + selectedTable);
+    var idx = await grist.widgetApi.getOption('templateIndex');
     if (idx && Array.isArray(idx.templates)) return idx;
   } catch (e) {}
   // Fallback to localStorage
   try {
-    var local = localStorage.getItem(TEMPLATE_STORAGE_KEY + 'index_' + selectedTable);
+    var local = localStorage.getItem(TEMPLATE_STORAGE_KEY + 'index');
     if (local) {
       var parsed = JSON.parse(local);
       if (parsed && Array.isArray(parsed.templates)) return parsed;
@@ -438,12 +438,12 @@ async function getTemplateIndex() {
 
 async function saveTemplateIndex(index) {
   try {
-    await grist.widgetApi.setOption('templateIndex_' + selectedTable, index);
+    await grist.widgetApi.setOption('templateIndex', index);
   } catch (e) {
     console.warn('Could not save template index to Grist:', e);
   }
   try {
-    localStorage.setItem(TEMPLATE_STORAGE_KEY + 'index_' + selectedTable, JSON.stringify(index));
+    localStorage.setItem(TEMPLATE_STORAGE_KEY + 'index', JSON.stringify(index));
   } catch (e) {}
 }
 
@@ -536,6 +536,35 @@ async function saveTemplate() {
 
 async function loadSavedTemplate() {
   var index = await getTemplateIndex();
+
+  // Legacy migration: try old per-table templates and migrate to global index
+  if (index.templates.length === 0 && selectedTable) {
+    var legacyHtml = null;
+    try {
+      legacyHtml = await grist.widgetApi.getOption('template_' + selectedTable);
+    } catch (e) {}
+    if (!legacyHtml) {
+      try { legacyHtml = localStorage.getItem(TEMPLATE_STORAGE_KEY + selectedTable); } catch (e) {}
+    }
+    // Also try old per-table index format
+    if (!legacyHtml) {
+      try {
+        var oldIdx = await grist.widgetApi.getOption('templateIndex_' + selectedTable);
+        if (oldIdx && Array.isArray(oldIdx.templates) && oldIdx.templates.length > 0) {
+          // Migrate all old templates to global index
+          index.templates = oldIdx.templates;
+          await saveTemplateIndex(index);
+        }
+      } catch (e) {}
+    }
+    if (legacyHtml && editorInstance) {
+      // Migrate legacy single template
+      var legacyName = selectedTable + ' - ' + (currentLang === 'fr' ? 'Modèle importé' : 'Imported template');
+      index.templates.push({ name: legacyName, html: legacyHtml });
+      await saveTemplateIndex(index);
+    }
+  }
+
   if (index.templates.length > 0) {
     // Load the first template by default
     var tpl = index.templates[0];
@@ -545,25 +574,6 @@ async function loadSavedTemplate() {
     var nameInput = document.getElementById('template-name-input');
     if (nameInput) nameInput.value = tpl.name;
     showToast(t('templateLoaded'), 'info');
-  } else {
-    // Legacy: try old single-template format
-    try {
-      var legacy = await grist.widgetApi.getOption('template_' + selectedTable);
-      if (legacy && editorInstance) {
-        setEditorHtml(legacy);
-        templateHtml = legacy;
-        showToast(t('templateLoaded'), 'info');
-        return;
-      }
-    } catch (e) {}
-    try {
-      var saved = localStorage.getItem(TEMPLATE_STORAGE_KEY + selectedTable);
-      if (saved && editorInstance) {
-        setEditorHtml(saved);
-        templateHtml = saved;
-        showToast(t('templateLoaded'), 'info');
-      }
-    } catch (e) {}
   }
   await refreshTemplateList();
 }
