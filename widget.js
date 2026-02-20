@@ -68,7 +68,10 @@ var i18n = {
     templateLoad: 'Charger',
     loopHint: 'Boucle (plusieurs lignes)',
     loopSyntax: '{{#each Colonne=Valeur}}...{{/each}}',
-    loopExample: 'Ex: {{#each Date=16/02/26}}{{Prenom}}<br>{{/each}}'
+    loopExample: 'Ex: {{#each Date=16/02/26}}{{Prenom}}<br>{{/each}}',
+    tableLoopBtn: 'Tableau avec boucle',
+    tableLoopHint: 'Insérer un tableau qui répète les lignes filtrées',
+    tableLoopInserted: 'Tableau avec boucle inséré'
   },
   en: {
     title: 'Document Template',
@@ -123,7 +126,10 @@ var i18n = {
     templateLoad: 'Load',
     loopHint: 'Loop (multiple rows)',
     loopSyntax: '{{#each Column=Value}}...{{/each}}',
-    loopExample: 'Ex: {{#each Date=16/02/26}}{{FirstName}}<br>{{/each}}'
+    loopExample: 'Ex: {{#each Date=16/02/26}}{{FirstName}}<br>{{/each}}',
+    tableLoopBtn: 'Table with loop',
+    tableLoopHint: 'Insert a table that repeats filtered rows',
+    tableLoopInserted: 'Table with loop inserted'
   }
 };
 
@@ -376,6 +382,11 @@ function renderVariableChips() {
   html += '🔄 ' + t('loopHint');
   html += '</span>';
   
+  // Add table with loop helper chip
+  html += '<span class="var-chip" style="background:#dbeafe;color:#1e40af;border:1px solid #93c5fd;" onclick="insertTableWithLoop()" title="' + t('tableLoopHint') + '">';
+  html += '📊 ' + t('tableLoopBtn');
+  html += '</span>';
+  
   for (var i = 0; i < tableColumns.length; i++) {
     var col = tableColumns[i];
     html += '<span class="var-chip" onclick="insertVariable(\'' + sanitize(col) + '\')">';
@@ -397,6 +408,31 @@ function insertLoopSyntax() {
   
   editorInstance.selection.insertHTML(loopHtml);
   showToast(t('loopSyntax') + ' ' + (currentLang === 'fr' ? 'inséré' : 'inserted'), 'info');
+}
+
+function insertTableWithLoop() {
+  if (!editorInstance) return;
+  var exampleCol = tableColumns.length > 0 ? tableColumns[0] : 'Colonne';
+  
+  // Build header row with all columns
+  var headerCells = '';
+  var dataCells = '';
+  var colsToUse = tableColumns.slice(0, 5); // Limit to 5 columns for readability
+  
+  for (var i = 0; i < colsToUse.length; i++) {
+    headerCells += '<th style="border:1px solid #ccc;padding:8px;background:#f3f4f6;">' + colsToUse[i] + '</th>';
+    dataCells += '<td style="border:1px solid #ccc;padding:8px;">{{' + colsToUse[i] + '}}</td>';
+  }
+  
+  var tableHtml = '<table style="border-collapse:collapse;width:100%;margin:10px 0;">' +
+    '<tr>' + headerCells + '</tr>' +
+    '{{#each ' + exampleCol + '=Valeur}}' +
+    '<tr>' + dataCells + '</tr>' +
+    '{{/each}}' +
+    '</table>';
+  
+  editorInstance.selection.insertHTML(tableHtml);
+  showToast(t('tableLoopInserted'), 'info');
 }
 
 function insertVariable(colName) {
