@@ -324,12 +324,39 @@ async function onTableChange(skipSave) {
 
     // Load saved template for this table
     loadSavedTemplate();
+    
+    // Also restore last editor content (auto-saved draft)
+    try {
+      var draft = await grist.widgetApi.getOption('editorDraft');
+      if (draft && editorInstance && !getEditorHtml().trim()) {
+        setEditorHtml(draft);
+        templateHtml = draft;
+        console.log('Draft restored from auto-save');
+      }
+    } catch (e) {}
 
     currentRecordIndex = 0;
   } catch (error) {
     console.error('Error loading table data:', error);
     showToast(t('importError') + error.message, 'error');
   }
+}
+
+// Auto-save editor content periodically
+var autoSaveTimer = null;
+function scheduleAutoSave() {
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(async function() {
+    if (editorInstance) {
+      var content = getEditorHtml();
+      if (content && content.trim()) {
+        try {
+          await grist.widgetApi.setOption('editorDraft', content);
+          console.log('Editor draft auto-saved');
+        } catch (e) {}
+      }
+    }
+  }, 2000); // Save 2 seconds after last change
 }
 
 // =============================================================================
@@ -424,7 +451,12 @@ function initEditor() {
     iframe: false,
     showCharsCounter: false,
     showWordsCounter: false,
-    showXPathInStatusbar: false
+    showXPathInStatusbar: false,
+    events: {
+      change: function() {
+        scheduleAutoSave();
+      }
+    }
   });
 }
 
