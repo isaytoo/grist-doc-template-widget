@@ -85,36 +85,6 @@
     .tab-btn.active { color: #7c3aed; border-bottom-color: #7c3aed; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
-    .tabs-separator {
-      width: 1px;
-      height: 24px;
-      background: #e2e8f0;
-      margin: 0 12px;
-      align-self: center;
-    }
-    .tabs-table-selector {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .tabs-table-selector label {
-      font-weight: 600;
-      font-size: 12px;
-      color: #475569;
-      white-space: nowrap;
-    }
-    .tabs-table-selector select {
-      padding: 5px 10px;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      font-size: 12px;
-      background: white;
-      min-width: 140px;
-    }
-    .tabs-table-selector select:focus {
-      outline: none;
-      border-color: #7c3aed;
-    }
 
     /* ========== MAIN CONTENT ========== */
     .main { padding: 12px; }
@@ -212,16 +182,9 @@
       background: white;
       border: 1px solid #e2e8f0;
       border-radius: 8px;
-      overflow: visible;
+      overflow: hidden;
     }
     .jodit-container { border: none !important; }
-    .jodit-toolbar__box {
-      position: sticky !important;
-      top: 155px !important;
-      z-index: 96 !important;
-      background: white !important;
-      border-bottom: 1px solid #e2e8f0 !important;
-    }
     .jodit-workplace { min-height: 400px !important; }
     .jodit-wysiwyg { font-family: 'Times New Roman', Times, serif; font-size: 14px; line-height: 1.6; }
     .jodit-wysiwyg .page-break-marker {
@@ -555,47 +518,6 @@
       padding: 10px 14px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
-
-    /* ========== FIXED TOP BAR ========== */
-    .fixed-top-bar {
-      position: fixed;
-      top: 77px;
-      left: 0;
-      right: 0;
-      z-index: 98;
-      background: #f8fafc;
-      padding: 8px 12px;
-      border-bottom: 1px solid #e2e8f0;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    }
-
-    /* ========== FIXED BOTTOM BAR ========== */
-    .fixed-bottom-bar {
-      position: fixed;
-      bottom: 28px;
-      left: 0;
-      right: 0;
-      z-index: 98;
-      background: #f8fafc;
-      padding: 10px 12px;
-      border-top: 1px solid #e2e8f0;
-      box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
-    }
-
-    /* ========== EDITOR TAB LAYOUT ========== */
-    #tab-editor .main {
-      padding-top: 80px; /* Space for fixed top bar */
-      padding-bottom: 140px; /* Space for fixed bottom bar */
-    }
-    #tab-editor .jodit-workplace {
-      min-height: 600px !important;
-    }
-    .editor-page-a4 .jodit-workplace {
-      min-height: 1000px !important;
-    }
-    .editor-page-letter .jodit-workplace {
-      min-height: 950px !important;
-    }
     .table-selector label {
       font-weight: 700;
       font-size: 13px;
@@ -654,7 +576,7 @@
       </div>
     </div>
 
-    <!-- TABS + TABLE SELECTOR -->
+    <!-- TABS -->
     <div class="tabs">
       <button class="tab-btn active" data-tab="editor" onclick="switchTab('editor')">
         ✏️ <span data-i18n="tabEditor">Éditeur</span>
@@ -665,37 +587,40 @@
       <button class="tab-btn" data-tab="pdf" onclick="switchTab('pdf')">
         📥 <span data-i18n="tabPdf">Générer PDF</span>
       </button>
-      <div class="tabs-separator"></div>
-      <div class="tabs-table-selector">
-        <label data-i18n="selectTable">📊 Table source :</label>
-        <select id="table-select" onchange="onTableChange()">
-          <option value="">-- Choisir une table --</option>
-        </select>
-        <div class="spinner hidden" id="table-loading"></div>
-      </div>
-      <div style="flex:1;"></div>
-      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('file-input').click()" style="margin:6px 0;">
-        📂 <span data-i18n="importBtn">Importer .docx</span>
-      </button>
-      <input type="file" id="file-input" accept=".docx" onchange="importWord(this.files[0])" style="display:none;" />
-    </div>
-
-    <!-- FIXED TOP: VARIABLES (outside tab content for true fixed position) -->
-    <div class="fixed-top-bar" id="fixed-var-bar">
-      <div class="var-panel hidden" id="var-panel">
-        <h3 style="margin-bottom:6px;">🔤 <span data-i18n="varTitle">Variables disponibles</span>
-          <span style="font-weight:400; font-size:11px; color:#94a3b8;" data-i18n="varHint">(cliquez pour insérer)</span>
-        </h3>
-        <div id="var-chips"></div>
-      </div>
     </div>
 
     <!-- ==================== TAB: EDITOR ==================== -->
     <div class="tab-content active" id="tab-editor">
       <div class="main">
 
+        <!-- TABLE SELECTOR -->
+        <div class="table-selector">
+          <label data-i18n="selectTable">📊 Table source :</label>
+          <select id="table-select" onchange="onTableChange()">
+            <option value="">-- Choisir une table --</option>
+          </select>
+          <div class="spinner hidden" id="table-loading"></div>
+        </div>
+
+        <!-- IMPORT WORD -->
+        <div class="import-section">
+          <h3>📂 <span data-i18n="importTitle">Importer un document Word</span></h3>
+          <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+            <input type="file" id="file-input" accept=".docx" onchange="importWord(this.files[0])" />
+            <p data-i18n="importDrop">Glissez un fichier .docx ici ou cliquez pour parcourir</p>
+          </div>
+        </div>
+
+        <!-- VARIABLE PANEL -->
+        <div class="var-panel hidden" id="var-panel">
+          <h3>🔤 <span data-i18n="varTitle">Variables disponibles</span>
+            <span style="font-weight:400; font-size:11px; color:#94a3b8;" data-i18n="varHint">(cliquez pour insérer)</span>
+          </h3>
+          <div id="var-chips"></div>
+        </div>
+
         <!-- PAGE FORMAT SELECTOR -->
-        <div style="margin-bottom:10px;margin-top:10px;display:flex;align-items:center;gap:12px;">
+        <div style="margin-bottom:10px;display:flex;align-items:center;gap:12px;">
           <label style="font-size:13px;font-weight:600;color:#475569;">📄 <span data-i18n="editorPageFormat">Format de page :</span></label>
           <select id="editor-page-format" onchange="setEditorPageFormat(this.value)" style="padding:4px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;">
             <option value="free">Libre (sans limite)</option>
@@ -711,28 +636,26 @@
           </div>
         </div>
 
-        <!-- FIXED BOTTOM: TEMPLATE MANAGEMENT -->
-        <div class="fixed-bottom-bar">
-          <div class="template-manager" style="background:white;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
-              <label style="font-size:13px;font-weight:600;color:#475569;white-space:nowrap;" data-i18n="templateSelect">Modèles enregistrés :</label>
-              <select id="template-list" onchange="onTemplateSelectChange()" style="flex:1;min-width:150px;padding:5px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;">
-                <option value="">-- Nouveau modèle --</option>
-              </select>
-              <button class="btn btn-secondary btn-sm" onclick="deleteSelectedTemplate()" id="btn-delete-template" style="display:none;">
-                🗑️ <span data-i18n="templateDelete">Supprimer</span>
-              </button>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-              <label style="font-size:13px;font-weight:600;color:#475569;white-space:nowrap;" data-i18n="templateName">Nom du modèle :</label>
-              <input type="text" id="template-name-input" placeholder="Ex: Courrier standard, PV réunion..." style="flex:1;min-width:150px;padding:5px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;" />
-              <button class="btn btn-primary btn-sm" onclick="saveTemplate()">
-                💾 <span data-i18n="saveTemplate">Sauvegarder</span>
-              </button>
-              <button class="btn btn-secondary btn-sm" onclick="clearEditor()">
-                🗑️ <span data-i18n="clearEditor">Vider</span>
-              </button>
-            </div>
+        <!-- TEMPLATE MANAGEMENT -->
+        <div class="template-manager" style="margin-top:14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+            <label style="font-size:13px;font-weight:600;color:#475569;white-space:nowrap;" data-i18n="templateSelect">Modèles enregistrés :</label>
+            <select id="template-list" onchange="onTemplateSelectChange()" style="flex:1;min-width:180px;padding:5px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;">
+              <option value="">-- Nouveau modèle --</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" onclick="deleteSelectedTemplate()" id="btn-delete-template" style="display:none;">
+              🗑️ <span data-i18n="templateDelete">Supprimer</span>
+            </button>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <label style="font-size:13px;font-weight:600;color:#475569;white-space:nowrap;" data-i18n="templateName">Nom du modèle :</label>
+            <input type="text" id="template-name-input" placeholder="Ex: Courrier standard, PV réunion..." style="flex:1;min-width:180px;padding:5px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;" />
+            <button class="btn btn-primary btn-sm" onclick="saveTemplate()">
+              💾 <span data-i18n="saveTemplate">Sauvegarder</span>
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="clearEditor()">
+              🗑️ <span data-i18n="clearEditor">Vider</span>
+            </button>
           </div>
         </div>
 
