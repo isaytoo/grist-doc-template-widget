@@ -65,7 +65,10 @@ var i18n = {
     templateDeleteConfirm: 'Supprimer le modèle "{name}" ?',
     templateDeleted: 'Modèle "{name}" supprimé.',
     templateDelete: 'Supprimer',
-    templateLoad: 'Charger'
+    templateLoad: 'Charger',
+    loopHint: 'Boucle (plusieurs lignes)',
+    loopSyntax: '{{#each Colonne=Valeur}}...{{/each}}',
+    loopExample: 'Ex: {{#each Date=16/02/26}}{{Prenom}}<br>{{/each}}'
   },
   en: {
     title: 'Document Template',
@@ -117,7 +120,10 @@ var i18n = {
     templateDeleteConfirm: 'Delete template "{name}"?',
     templateDeleted: 'Template "{name}" deleted.',
     templateDelete: 'Delete',
-    templateLoad: 'Load'
+    templateLoad: 'Load',
+    loopHint: 'Loop (multiple rows)',
+    loopSyntax: '{{#each Column=Value}}...{{/each}}',
+    loopExample: 'Ex: {{#each Date=16/02/26}}{{FirstName}}<br>{{/each}}'
   }
 };
 
@@ -309,6 +315,12 @@ async function onTableChange() {
 
 function renderVariableChips() {
   var html = '';
+  
+  // Add loop syntax helper chip
+  html += '<span class="var-chip" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;" onclick="insertLoopSyntax()" title="' + t('loopExample') + '">';
+  html += '🔄 ' + t('loopHint');
+  html += '</span>';
+  
   for (var i = 0; i < tableColumns.length; i++) {
     var col = tableColumns[i];
     html += '<span class="var-chip" onclick="insertVariable(\'' + sanitize(col) + '\')">';
@@ -316,6 +328,20 @@ function renderVariableChips() {
     html += '</span>';
   }
   document.getElementById('var-chips').innerHTML = html;
+}
+
+function insertLoopSyntax() {
+  if (!editorInstance) return;
+  var exampleCol = tableColumns.length > 0 ? tableColumns[0] : 'Colonne';
+  var loopHtml = '<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:10px;margin:10px 0;">' +
+    '<span style="background:#f3e8ff;color:#7c3aed;padding:2px 6px;border-radius:4px;font-weight:600;" contenteditable="false">{{#each ' + exampleCol + '=Valeur}}</span>' +
+    '<br><br>' +
+    '<em style="color:#94a3b8;">' + (currentLang === 'fr' ? 'Contenu répété pour chaque ligne...' : 'Content repeated for each row...') + '</em>' +
+    '<br><br>' +
+    '<span style="background:#f3e8ff;color:#7c3aed;padding:2px 6px;border-radius:4px;font-weight:600;" contenteditable="false">{{/each}}</span>' +
+    '</div>';
+  editorInstance.selection.insertHTML(loopHtml);
+  showToast(t('loopSyntax') + ' ' + (currentLang === 'fr' ? 'inséré' : 'inserted'), 'info');
 }
 
 function insertVariable(colName) {
@@ -779,8 +805,109 @@ function getRecordAt(index) {
   return record;
 }
 
+// =============================================================================
+// LOOP PROCESSING - {{#each Column=Value}}...{{/each}}
+// =============================================================================
+
+function processLoops(html, forPdf) {
+  if (!tableData || !tableColumns.length) return html;
+  
+  var resolved = html;
+  
+  // Regex to match {{#each Column=Value}}...{{/each}}
+  // Supports both plain text and styled spans
+  var loopRegex = /\{\{#each\s+([^=}]+)=([^}]+)\}\}([\s\S]*?)\{\{\/each\}\}/g;
+  var styledLoopRegex = /<span[^>]*>\{\{#each\s+([^=}]+)=([^}]+)\}\}<\/span>([\s\S]*?)<span[^>]*>\{\{\/each\}\}<\/span>/g;
+  
+  // Process styled loops first
+  resolved = resolved.replace(styledLoopRegex, function(match, filterCol, filterVal, loopContent) {
+    return executeLoop(filterCol.trim(), filterVal.trim(), loopContent, forPdf);
+  });
+  
+  // Process plain text loops
+  resolved = resolved.replace(loopRegex, function(match, filterCol, filterVal, loopContent) {
+    return executeLoop(filterCol.trim(), filterVal.trim(), loopContent, forPdf);
+  });
+  
+  return resolved;
+}
+
+function executeLoop(filterColumn, filterValue, loopContent, forPdf) {
+  if (!tableData || !tableColumns.length) return '';
+  
+  // Find the filter column in tableData
+  var filterColData = tableData[filterColumn];
+  if (!filterColData) {
+    // Column not found - return error message
+    return '<span style="color:red;">[Colonne "' + filterColumn + '" non trouvée]</span>';
+  }
+  
+  // Find all rows where filterColumn matches filterValue
+  var matchingIndices = [];
+  for (var i = 0; i < filterColData.length; i++) {
+    var cellValue = filterColData[i];
+    var cellStr = (cellValue === null || cellValue === undefined) ? '' : String(cellValue);
+    
+    // Flexible matching: exact match or contains
+    if (cellStr === filterValue || cellStr.indexOf(filterValue) !== -1) {
+      matchingIndices.push(i);
+    }
+  }
+  
+  if (matchingIndices.length === 0) {
+    // No matches found
+    return '<span style="color:#94a3b8;font-style:italic;">[Aucune ligne où ' + filterColumn + '=' + filterValue + ']</span>';
+  }
+  
+  // Generate output for each matching row
+  var output = '';
+  for (var j = 0; j < matchingIndices.length; j++) {
+    var rowIndex = matchingIndices[j];
+    var rowRecord = getRecordAt(rowIndex);
+    
+    // Resolve variables in loopContent for this row
+    var rowHtml = loopContent;
+    for (var col in rowRecord) {
+      var val = rowRecord[col];
+      var display = (val === null || val === undefined || val === '') ? '' : String(val);
+      
+      // Replace styled spans
+      var styledRegex = new RegExp('<span[^>]*>\\{\\{' + escapeRegex(col) + '\\}\\}</span>', 'g');
+      if (display) {
+        if (forPdf) {
+          rowHtml = rowHtml.replace(styledRegex, '<strong>' + sanitize(display) + '</strong>');
+        } else {
+          rowHtml = rowHtml.replace(styledRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
+        }
+      } else {
+        rowHtml = rowHtml.replace(styledRegex, '');
+      }
+      
+      // Replace plain text {{col}}
+      var plainRegex = new RegExp('\\{\\{' + escapeRegex(col) + '\\}\\}', 'g');
+      if (display) {
+        if (forPdf) {
+          rowHtml = rowHtml.replace(plainRegex, '<strong>' + sanitize(display) + '</strong>');
+        } else {
+          rowHtml = rowHtml.replace(plainRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
+        }
+      } else {
+        rowHtml = rowHtml.replace(plainRegex, '');
+      }
+    }
+    
+    output += rowHtml;
+  }
+  
+  return output;
+}
+
 function resolveTemplate(html, record, forPdf) {
   var resolved = html;
+  
+  // Process {{#each Column=Value}}...{{/each}} loops first
+  resolved = processLoops(resolved, forPdf);
+  
   for (var col in record) {
     var val = record[col];
     var display = (val === null || val === undefined || val === '') ? '' : String(val);
