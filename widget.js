@@ -220,6 +220,18 @@ function switchTab(tabId) {
   document.querySelectorAll('.tab-content').forEach(function(tc) {
     tc.classList.toggle('active', tc.id === 'tab-' + tabId);
   });
+  
+  // Show/hide fixed bars based on tab
+  var fixedVarBar = document.getElementById('fixed-var-bar');
+  var fixedBottomBar = document.querySelector('.fixed-bottom-bar');
+  if (tabId === 'editor') {
+    if (fixedVarBar) fixedVarBar.style.display = 'block';
+    if (fixedBottomBar) fixedBottomBar.style.display = 'block';
+  } else {
+    if (fixedVarBar) fixedVarBar.style.display = 'none';
+    if (fixedBottomBar) fixedBottomBar.style.display = 'none';
+  }
+  
   if (tabId === 'preview') {
     renderPreview();
   }
