@@ -680,20 +680,19 @@
       <input type="file" id="file-input" accept=".docx" onchange="importWord(this.files[0])" style="display:none;" />
     </div>
 
+    <!-- FIXED TOP: VARIABLES (outside tab content for true fixed position) -->
+    <div class="fixed-top-bar" id="fixed-var-bar">
+      <div class="var-panel hidden" id="var-panel">
+        <h3 style="margin-bottom:6px;">🔤 <span data-i18n="varTitle">Variables disponibles</span>
+          <span style="font-weight:400; font-size:11px; color:#94a3b8;" data-i18n="varHint">(cliquez pour insérer)</span>
+        </h3>
+        <div id="var-chips"></div>
+      </div>
+    </div>
+
     <!-- ==================== TAB: EDITOR ==================== -->
     <div class="tab-content active" id="tab-editor">
       <div class="main">
-
-        <!-- FIXED TOP: VARIABLES ONLY -->
-        <div class="fixed-top-bar">
-          <!-- VARIABLE PANEL -->
-          <div class="var-panel hidden" id="var-panel" style="margin-bottom:10px;">
-            <h3>🔤 <span data-i18n="varTitle">Variables disponibles</span>
-              <span style="font-weight:400; font-size:11px; color:#94a3b8;" data-i18n="varHint">(cliquez pour insérer)</span>
-            </h3>
-            <div id="var-chips"></div>
-          </div>
-        </div>
 
         <!-- PAGE FORMAT SELECTOR -->
         <div style="margin-bottom:10px;margin-top:10px;display:flex;align-items:center;gap:12px;">
