@@ -662,12 +662,22 @@
       <input type="file" id="file-input" accept=".docx" onchange="importWord(this.files[0])" style="display:none;" />
     </div>
 
-    <!-- FIXED TOP: VARIABLES -->
+    <!-- FIXED TOP: VARIABLES + FORMAT -->
     <div class="fixed-top-bar" id="fixed-var-bar">
       <div class="var-panel hidden" id="var-panel">
-        <h3 style="margin-bottom:6px;">🔤 <span data-i18n="varTitle">Variables disponibles</span>
-          <span style="font-weight:400; font-size:11px; color:#94a3b8;" data-i18n="varHint">(cliquez pour insérer)</span>
-        </h3>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
+          <h3 style="margin:0;">🔤 <span data-i18n="varTitle">Variables disponibles</span>
+            <span style="font-weight:400; font-size:11px; color:#94a3b8;" data-i18n="varHint">(cliquez pour insérer)</span>
+          </h3>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <label style="font-size:12px;font-weight:600;color:#475569;">📄 <span data-i18n="editorPageFormat">Format :</span></label>
+            <select id="editor-page-format" onchange="setEditorPageFormat(this.value)" style="padding:3px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;">
+              <option value="free">Libre</option>
+              <option value="a4" selected>A4</option>
+              <option value="letter">Letter</option>
+            </select>
+          </div>
+        </div>
         <div id="var-chips"></div>
       </div>
     </div>
@@ -675,16 +685,6 @@
     <!-- ==================== TAB: EDITOR ==================== -->
     <div class="tab-content active" id="tab-editor">
       <div class="main">
-
-        <!-- PAGE FORMAT SELECTOR -->
-        <div style="margin-bottom:10px;display:flex;align-items:center;gap:12px;">
-          <label style="font-size:13px;font-weight:600;color:#475569;">📄 <span data-i18n="editorPageFormat">Format de page :</span></label>
-          <select id="editor-page-format" onchange="setEditorPageFormat(this.value)" style="padding:4px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;">
-            <option value="free">Libre (sans limite)</option>
-            <option value="a4" selected>A4 (210 × 297 mm)</option>
-            <option value="letter">Letter (216 × 279 mm)</option>
-          </select>
-        </div>
 
         <!-- EDITOR -->
         <div id="editor-page-wrapper" class="editor-page-a4">
