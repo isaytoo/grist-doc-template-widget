@@ -623,6 +623,11 @@
       <button class="tab-btn" data-tab="pdf" onclick="switchTab('pdf')">
         📥 <span data-i18n="tabPdf">Générer PDF</span>
       </button>
+      <div style="flex:1;"></div>
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('file-input').click()" style="margin:6px 0;">
+        📂 <span data-i18n="importBtn">Importer .docx</span>
+      </button>
+      <input type="file" id="file-input" accept=".docx" onchange="importWord(this.files[0])" style="display:none;" />
     </div>
 
     <!-- ==================== TAB: EDITOR ==================== -->
@@ -646,15 +651,6 @@
               <span style="font-weight:400; font-size:11px; color:#94a3b8;" data-i18n="varHint">(cliquez pour insérer)</span>
             </h3>
             <div id="var-chips"></div>
-          </div>
-        </div>
-
-        <!-- IMPORT WORD -->
-        <div class="import-section" style="margin-top:10px;">
-          <h3>📂 <span data-i18n="importTitle">Importer un document Word</span></h3>
-          <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
-            <input type="file" id="file-input" accept=".docx" onchange="importWord(this.files[0])" />
-            <p data-i18n="importDrop">Glissez un fichier .docx ici ou cliquez pour parcourir</p>
           </div>
         </div>
 
