@@ -1,5 +1,5 @@
 {
-  "name": "@isaytoo/grist-doc-template-widget",
+  "name": "@isaytoo/doc-template",
   "version": "1.0.0",
   "description": "Grist widget for document templates with mail merge, Word import, and PDF generation",
   "homepage": "https://github.com/isaytoo/grist-doc-template-widget",
@@ -8,22 +8,20 @@
     "name": "Said Hamadou",
     "url": "https://github.com/isaytoo"
   },
-  "grist": [
-    {
-      "name": "Document Template (Mail Merge)",
-      "url": "https://grist-doc-template-widget.vercel.app/index.html",
-      "widgetId": "@isaytoo/widget-doc-template",
-      "published": true,
-      "accessLevel": "full",
-      "renderAfterReady": true,
-      "description": "WYSIWYG document editor with Grist field variables, mail merge preview, Word import, and PDF generation. Bilingual FR/EN.",
-      "authors": [
-        {
-          "name": "Said Hamadou",
-          "url": "https://github.com/isaytoo"
-        }
-      ],
-      "isGristLabsMaintained": false
-    }
-  ]
+  "grist": {
+    "name": "Document Template (Mail Merge)",
+    "url": "https://gristlabs.github.io/grist-widget/doc-template/",
+    "widgetId": "@isaytoo/widget-doc-template",
+    "published": true,
+    "accessLevel": "full",
+    "renderAfterReady": true,
+    "description": "WYSIWYG document editor with Grist field variables, mail merge preview, Word import, and PDF generation. Bilingual FR/EN.",
+    "authors": [
+      {
+        "name": "Said Hamadou",
+        "url": "https://github.com/isaytoo"
+      }
+    ],
+    "isGristLabsMaintained": false
+  }
 }
