@@ -809,6 +809,45 @@ function getRecordAt(index) {
 // LOOP PROCESSING - {{#each Column=Value}}...{{/each}}
 // =============================================================================
 
+function normalizeForComparison(value) {
+  if (!value) return '';
+  var str = String(value).trim().toLowerCase();
+  
+  // Handle Grist timestamp (number of seconds since epoch)
+  if (/^\d{10,}$/.test(str)) {
+    var date = new Date(parseInt(str) * 1000);
+    if (!isNaN(date.getTime())) {
+      // Return multiple formats for matching
+      var day = String(date.getDate()).padStart(2, '0');
+      var month = String(date.getMonth() + 1).padStart(2, '0');
+      var year = date.getFullYear();
+      var shortYear = String(year).slice(-2);
+      return day + '/' + month + '/' + year + '|' + day + '/' + month + '/' + shortYear + '|' + year + '-' + month + '-' + day;
+    }
+  }
+  
+  // Handle ISO date format (2026-02-16)
+  var isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    var y = isoMatch[1], m = isoMatch[2], d = isoMatch[3];
+    return d + '/' + m + '/' + y + '|' + d + '/' + m + '/' + y.slice(-2) + '|' + y + '-' + m + '-' + d;
+  }
+  
+  // Handle French date format (16/02/2026 or 16/02/26)
+  var frMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+  if (frMatch) {
+    var dd = frMatch[1].padStart(2, '0');
+    var mm = frMatch[2].padStart(2, '0');
+    var yy = frMatch[3];
+    if (yy.length === 2) {
+      yy = (parseInt(yy) > 50 ? '19' : '20') + yy;
+    }
+    return dd + '/' + mm + '/' + yy + '|' + dd + '/' + mm + '/' + yy.slice(-2) + '|' + yy + '-' + mm + '-' + dd;
+  }
+  
+  return str;
+}
+
 function processLoops(html, forPdf) {
   if (!tableData || !tableColumns.length) return html;
   
@@ -838,25 +877,41 @@ function executeLoop(filterColumn, filterValue, loopContent, forPdf) {
   // Find the filter column in tableData
   var filterColData = tableData[filterColumn];
   if (!filterColData) {
-    // Column not found - return error message
-    return '<span style="color:red;">[Colonne "' + filterColumn + '" non trouvée]</span>';
+    // Column not found - return error message with available columns
+    var availableCols = tableColumns.join(', ');
+    return '<span style="color:red;">[Colonne "' + filterColumn + '" non trouvée. Colonnes disponibles: ' + availableCols + ']</span>';
   }
   
   // Find all rows where filterColumn matches filterValue
   var matchingIndices = [];
+  var sampleValues = [];
+  
   for (var i = 0; i < filterColData.length; i++) {
     var cellValue = filterColData[i];
     var cellStr = (cellValue === null || cellValue === undefined) ? '' : String(cellValue);
     
-    // Flexible matching: exact match or contains
-    if (cellStr === filterValue || cellStr.indexOf(filterValue) !== -1) {
+    // Collect sample values for debug (first 3 unique)
+    if (sampleValues.length < 3 && sampleValues.indexOf(cellStr) === -1) {
+      sampleValues.push(cellStr);
+    }
+    
+    // Normalize for date comparison
+    var normalizedCell = normalizeForComparison(cellStr);
+    var normalizedFilter = normalizeForComparison(filterValue);
+    
+    // Flexible matching: exact match, contains, or normalized match
+    if (cellStr === filterValue || 
+        cellStr.indexOf(filterValue) !== -1 ||
+        normalizedCell === normalizedFilter ||
+        normalizedCell.indexOf(normalizedFilter) !== -1) {
       matchingIndices.push(i);
     }
   }
   
   if (matchingIndices.length === 0) {
-    // No matches found
-    return '<span style="color:#94a3b8;font-style:italic;">[Aucune ligne où ' + filterColumn + '=' + filterValue + ']</span>';
+    // No matches found - show sample values to help user
+    var sampleStr = sampleValues.map(function(v) { return '"' + v + '"'; }).join(', ');
+    return '<span style="color:#f59e0b;font-style:italic;">[Aucune ligne où ' + filterColumn + '="' + filterValue + '". Valeurs existantes: ' + sampleStr + '...]</span>';
   }
   
   // Generate output for each matching row
