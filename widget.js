@@ -236,6 +236,19 @@ if (!isInsideGrist()) {
       // Initialize editor FIRST so it's ready when we load templates
       initEditor();
 
+      // Restore draft immediately after editor init
+      try {
+        var draft = await grist.widgetApi.getOption('editorDraft');
+        console.log('Draft from options:', draft ? draft.substring(0, 50) + '...' : 'null');
+        if (draft && editorInstance) {
+          setEditorHtml(draft);
+          templateHtml = draft;
+          console.log('Draft restored at startup');
+        }
+      } catch (e) {
+        console.warn('Could not restore draft:', e);
+      }
+
       // Listen for widget options (template stored in Grist)
       grist.onOptions(function(options) {
         if (options && options.template && selectedTable) {
@@ -322,18 +335,10 @@ async function onTableChange(skipSave) {
       }
     }
 
-    // Load saved template for this table
-    loadSavedTemplate();
-    
-    // Also restore last editor content (auto-saved draft)
-    try {
-      var draft = await grist.widgetApi.getOption('editorDraft');
-      if (draft && editorInstance && !getEditorHtml().trim()) {
-        setEditorHtml(draft);
-        templateHtml = draft;
-        console.log('Draft restored from auto-save');
-      }
-    } catch (e) {}
+    // Load saved template for this table (only if editor is empty)
+    if (!getEditorHtml().trim()) {
+      loadSavedTemplate();
+    }
 
     currentRecordIndex = 0;
   } catch (error) {
