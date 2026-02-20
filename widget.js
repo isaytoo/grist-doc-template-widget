@@ -607,28 +607,40 @@ async function getTemplateIndex() {
   // Returns { templates: [ { name: "...", html: "..." }, ... ] }
   try {
     var idx = await grist.widgetApi.getOption('templateIndex');
+    console.log('getTemplateIndex from Grist:', idx);
     if (idx && Array.isArray(idx.templates)) return idx;
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Error getting templateIndex from Grist:', e);
+  }
   // Fallback to localStorage
   try {
     var local = localStorage.getItem(TEMPLATE_STORAGE_KEY + 'index');
+    console.log('getTemplateIndex from localStorage:', local);
     if (local) {
       var parsed = JSON.parse(local);
       if (parsed && Array.isArray(parsed.templates)) return parsed;
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Error getting templateIndex from localStorage:', e);
+  }
+  console.log('getTemplateIndex: returning empty');
   return { templates: [] };
 }
 
 async function saveTemplateIndex(index) {
+  console.log('Saving template index:', JSON.stringify(index));
   try {
     await grist.widgetApi.setOption('templateIndex', index);
+    console.log('Template index saved to Grist options');
   } catch (e) {
     console.warn('Could not save template index to Grist:', e);
   }
   try {
     localStorage.setItem(TEMPLATE_STORAGE_KEY + 'index', JSON.stringify(index));
-  } catch (e) {}
+    console.log('Template index saved to localStorage');
+  } catch (e) {
+    console.warn('Could not save to localStorage:', e);
+  }
 }
 
 async function refreshTemplateList() {
