@@ -289,6 +289,10 @@ if (!isInsideGrist()) {
 
       // Load tables and restore selection
       await loadTables();
+      
+      // Load saved templates list
+      await refreshTemplateList();
+      console.log('Template list refreshed at startup');
     } catch (error) {
       console.error('Init error:', error);
     }
