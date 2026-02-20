@@ -913,6 +913,26 @@ function processLoops(html, forPdf) {
   
   var resolved = html;
   
+  // Special case: handle loops inside table rows
+  // Pattern: <tr>...<td>{{#each...}}</td>...</tr>...<tr>...</tr>...<tr>...<td>{{/each}}</td>...</tr>
+  // This happens when Jodit puts the loop markers in table cells
+  var tableLoopRegex = /<tr[^>]*>([^]*?)<td[^>]*>([^<]*\{\{#each\s+([^=}]+)=([^}]+)\}\}[^<]*)<\/td>([^]*?)<\/tr>([^]*?)<tr[^>]*>([^]*?)<\/tr>([^]*?)<tr[^>]*>([^]*?)<td[^>]*>([^<]*\{\{\/each\}\}[^<]*)<\/td>([^]*?)<\/tr>/gi;
+  
+  resolved = resolved.replace(tableLoopRegex, function(match, before1, eachCell, filterCol, filterVal, after1, between, rowContent, after2, before3, endCell, after3) {
+    // Extract the template row (the middle <tr>)
+    var templateRow = '<tr>' + rowContent + '</tr>';
+    var result = executeLoop(filterCol.trim(), filterVal.trim(), templateRow, forPdf);
+    return result;
+  });
+  
+  // Simpler table loop: <tr> containing {{#each}} ... next <tr> with content ... <tr> with {{/each}}
+  // Try to detect: row with #each, then row(s) with variables, then row with /each
+  var simpleTableLoopRegex = /<tr[^>]*>\s*<td[^>]*>\s*\{\{#each\s+([^=}]+)=([^}]+)\}\}\s*<\/td>\s*<\/tr>\s*(<tr[^>]*>[\s\S]*?<\/tr>)\s*<tr[^>]*>\s*<td[^>]*>\s*\{\{\/each\}\}\s*<\/td>\s*<\/tr>/gi;
+  
+  resolved = resolved.replace(simpleTableLoopRegex, function(match, filterCol, filterVal, templateRows) {
+    return executeLoop(filterCol.trim(), filterVal.trim(), templateRows, forPdf);
+  });
+  
   // Regex to match {{#each Column=Value}}...{{/each}}
   // Supports both plain text and styled spans
   var loopRegex = /\{\{#each\s+([^=}]+)=([^}]+)\}\}([\s\S]*?)\{\{\/each\}\}/g;
