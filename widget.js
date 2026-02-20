@@ -273,6 +273,17 @@ async function loadTables() {
       opt.textContent = allTables[i];
       select.appendChild(opt);
     }
+    
+    // Restore previously selected table
+    try {
+      var savedTable = await grist.widgetApi.getOption('selectedTable');
+      if (savedTable && allTables.indexOf(savedTable) !== -1) {
+        select.value = savedTable;
+        await onTableChange(true); // true = skip saving again
+      }
+    } catch (e) {
+      console.warn('Could not restore selected table:', e);
+    }
   } catch (error) {
     console.error('Error loading tables:', error);
   } finally {
@@ -280,7 +291,7 @@ async function loadTables() {
   }
 }
 
-async function onTableChange() {
+async function onTableChange(skipSave) {
   var select = document.getElementById('table-select');
   selectedTable = select.value;
   if (!selectedTable) {
@@ -298,6 +309,15 @@ async function onTableChange() {
     });
     renderVariableChips();
     document.getElementById('var-panel').classList.remove('hidden');
+
+    // Save selected table to widget options (persist across page changes)
+    if (!skipSave) {
+      try {
+        await grist.widgetApi.setOption('selectedTable', selectedTable);
+      } catch (e) {
+        console.warn('Could not save selected table:', e);
+      }
+    }
 
     // Load saved template for this table
     loadSavedTemplate();
