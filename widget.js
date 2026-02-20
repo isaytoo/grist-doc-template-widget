@@ -255,6 +255,12 @@ if (!isInsideGrist()) {
 
       // Initialize editor FIRST so it's ready when we load templates
       initEditor();
+      
+      // Show fixed bars for editor tab (default tab)
+      var fixedVarBar = document.getElementById('fixed-var-bar');
+      var fixedBottomBar = document.querySelector('.fixed-bottom-bar');
+      if (fixedVarBar) fixedVarBar.style.display = 'block';
+      if (fixedBottomBar) fixedBottomBar.style.display = 'block';
 
       // Restore draft immediately after editor init
       try {
