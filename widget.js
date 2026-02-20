@@ -413,6 +413,7 @@ function insertLoopSyntax() {
 function insertTableWithLoop() {
   if (!editorInstance) return;
   var exampleCol = tableColumns.length > 0 ? tableColumns[0] : 'Colonne';
+  var filterValue = currentLang === 'fr' ? 'Valeur' : 'Value';
   
   // Build header row with all columns
   var headerCells = '';
@@ -424,12 +425,17 @@ function insertTableWithLoop() {
     dataCells += '<td style="border:1px solid #ccc;padding:8px;">{{' + colsToUse[i] + '}}</td>';
   }
   
+  // Use special markers that will be processed: LOOP_START and LOOP_END
+  // These are placed as HTML comments inside the table structure
   var tableHtml = '<table style="border-collapse:collapse;width:100%;margin:10px 0;">' +
-    '<tr>' + headerCells + '</tr>' +
-    '{{#each ' + exampleCol + '=Valeur}}' +
+    '<thead><tr>' + headerCells + '</tr></thead>' +
+    '<tbody>' +
+    '<!--LOOP:' + exampleCol + '=' + filterValue + '-->' +
     '<tr>' + dataCells + '</tr>' +
-    '{{/each}}' +
-    '</table>';
+    '<!--/LOOP-->' +
+    '</tbody>' +
+    '</table>' +
+    '<p><small style="color:#94a3b8;">💡 ' + (currentLang === 'fr' ? 'Modifiez "' + exampleCol + '=' + filterValue + '" dans le code source (bouton &lt;/&gt;) pour filtrer vos données' : 'Edit "' + exampleCol + '=' + filterValue + '" in source code (button &lt;/&gt;) to filter your data') + '</small></p>';
   
   editorInstance.selection.insertHTML(tableHtml);
   showToast(t('tableLoopInserted'), 'info');
@@ -905,6 +911,26 @@ function getRecordAt(index) {
 // LOOP PROCESSING - {{#each Column=Value}}...{{/each}}
 // =============================================================================
 
+function formatValueForDisplay(value) {
+  if (value === null || value === undefined || value === '') return '';
+  
+  var str = String(value);
+  
+  // Check if it's a Grist timestamp (number of seconds since epoch, typically 10+ digits)
+  if (/^\d{10,}$/.test(str)) {
+    var timestamp = parseInt(str);
+    var date = new Date(timestamp * 1000);
+    if (!isNaN(date.getTime())) {
+      var day = String(date.getDate()).padStart(2, '0');
+      var month = String(date.getMonth() + 1).padStart(2, '0');
+      var year = date.getFullYear();
+      return day + '/' + month + '/' + year;
+    }
+  }
+  
+  return str;
+}
+
 function normalizeForComparison(value) {
   if (!value) return '';
   var str = String(value).trim().toLowerCase();
@@ -948,6 +974,12 @@ function processLoops(html, forPdf) {
   if (!tableData || !tableColumns.length) return html;
   
   var resolved = html;
+  
+  // Process HTML comment-based loops (for tables): <!--LOOP:Column=Value-->...<!--/LOOP-->
+  var commentLoopRegex = /<!--LOOP:([^=]+)=([^-]+)-->([\s\S]*?)<!--\/LOOP-->/gi;
+  resolved = resolved.replace(commentLoopRegex, function(match, filterCol, filterVal, loopContent) {
+    return executeLoop(filterCol.trim(), filterVal.trim(), loopContent, forPdf);
+  });
   
   // Special case: handle loops inside table rows
   // Pattern: <tr>...<td>{{#each...}}</td>...</tr>...<tr>...</tr>...<tr>...<td>{{/each}}</td>...</tr>
@@ -1040,7 +1072,7 @@ function executeLoop(filterColumn, filterValue, loopContent, forPdf) {
     var rowHtml = loopContent;
     for (var col in rowRecord) {
       var val = rowRecord[col];
-      var display = (val === null || val === undefined || val === '') ? '' : String(val);
+      var display = formatValueForDisplay(val);
       
       // Replace styled spans
       var styledRegex = new RegExp('<span[^>]*>\\{\\{' + escapeRegex(col) + '\\}\\}</span>', 'g');
@@ -1081,7 +1113,7 @@ function resolveTemplate(html, record, forPdf) {
   
   for (var col in record) {
     var val = record[col];
-    var display = (val === null || val === undefined || val === '') ? '' : String(val);
+    var display = formatValueForDisplay(val);
     // Replace styled spans (Quill wraps variables in <span style="...">)
     var styledRegex = new RegExp('<span[^>]*>\\{\\{' + escapeRegex(col) + '\\}\\}</span>', 'g');
     if (display) {
