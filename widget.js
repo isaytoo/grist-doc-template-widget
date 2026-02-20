@@ -810,6 +810,15 @@ async function clearEditor() {
     if (select) select.value = '';
     var delBtn = document.getElementById('btn-delete-template');
     if (delBtn) delBtn.style.display = 'none';
+    
+    // Clear saved draft too
+    try {
+      await grist.widgetApi.setOption('editorDraft', '');
+      console.log('Draft cleared');
+    } catch (e) {
+      console.warn('Could not clear draft:', e);
+    }
+    
     showToast(t('templateCleared'), 'info');
   }
 }
