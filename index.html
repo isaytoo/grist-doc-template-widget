@@ -212,9 +212,16 @@
       background: white;
       border: 1px solid #e2e8f0;
       border-radius: 8px;
-      overflow: hidden;
+      overflow: visible;
     }
     .jodit-container { border: none !important; }
+    .jodit-toolbar__box {
+      position: sticky !important;
+      top: 77px !important;
+      z-index: 97 !important;
+      background: white !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+    }
     .jodit-workplace { min-height: 400px !important; }
     .jodit-wysiwyg { font-family: 'Times New Roman', Times, serif; font-size: 14px; line-height: 1.6; }
     .jodit-wysiwyg .page-break-marker {
