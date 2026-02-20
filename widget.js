@@ -412,33 +412,69 @@ function insertLoopSyntax() {
 
 function insertTableWithLoop() {
   if (!editorInstance) return;
-  var exampleCol = tableColumns.length > 0 ? tableColumns[0] : 'Colonne';
-  var filterValue = currentLang === 'fr' ? 'Valeur' : 'Value';
   
-  // Build header row with all columns
-  var headerCells = '';
-  var dataCells = '';
-  var colsToUse = tableColumns.slice(0, 5); // Limit to 5 columns for readability
-  
-  for (var i = 0; i < colsToUse.length; i++) {
-    headerCells += '<th style="border:1px solid #ccc;padding:8px;background:#f3f4f6;">' + colsToUse[i] + '</th>';
-    dataCells += '<td style="border:1px solid #ccc;padding:8px;">{{' + colsToUse[i] + '}}</td>';
+  // Build column selector options
+  var colOptions = '';
+  for (var i = 0; i < tableColumns.length; i++) {
+    colOptions += '<option value="' + tableColumns[i] + '">' + tableColumns[i] + '</option>';
   }
   
-  // Use special markers that will be processed: LOOP_START and LOOP_END
-  // These are placed as HTML comments inside the table structure
-  var tableHtml = '<table style="border-collapse:collapse;width:100%;margin:10px 0;">' +
-    '<thead><tr>' + headerCells + '</tr></thead>' +
-    '<tbody>' +
-    '<!--LOOP:' + exampleCol + '=' + filterValue + '-->' +
-    '<tr>' + dataCells + '</tr>' +
-    '<!--/LOOP-->' +
-    '</tbody>' +
-    '</table>' +
-    '<p><small style="color:#94a3b8;">💡 ' + (currentLang === 'fr' ? 'Modifiez "' + exampleCol + '=' + filterValue + '" dans le code source (bouton &lt;/&gt;) pour filtrer vos données' : 'Edit "' + exampleCol + '=' + filterValue + '" in source code (button &lt;/&gt;) to filter your data') + '</small></p>';
+  var formHtml = '<div style="text-align:left;">' +
+    '<p style="margin-bottom:15px;">' + (currentLang === 'fr' ? 'Configurez le filtre pour répéter les lignes du tableau :' : 'Configure the filter to repeat table rows:') + '</p>' +
+    '<div style="margin-bottom:10px;">' +
+    '<label style="display:block;margin-bottom:5px;font-weight:600;">' + (currentLang === 'fr' ? 'Colonne à filtrer :' : 'Column to filter:') + '</label>' +
+    '<select id="loop-filter-col" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">' + colOptions + '</select>' +
+    '</div>' +
+    '<div style="margin-bottom:10px;">' +
+    '<label style="display:block;margin-bottom:5px;font-weight:600;">' + (currentLang === 'fr' ? 'Valeur à rechercher :' : 'Value to search:') + '</label>' +
+    '<input type="text" id="loop-filter-val" placeholder="' + (currentLang === 'fr' ? 'Ex: 16/02/2026' : 'E.g.: 16/02/2026') + '" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">' +
+    '</div>' +
+    '<div style="margin-bottom:10px;">' +
+    '<label style="display:block;margin-bottom:5px;font-weight:600;">' + (currentLang === 'fr' ? 'Colonnes à afficher :' : 'Columns to display:') + '</label>' +
+    '<div id="loop-cols-checkboxes" style="max-height:150px;overflow-y:auto;border:1px solid #eee;padding:8px;border-radius:4px;">';
   
-  editorInstance.selection.insertHTML(tableHtml);
-  showToast(t('tableLoopInserted'), 'info');
+  for (var j = 0; j < tableColumns.length; j++) {
+    var checked = j < 5 ? 'checked' : '';
+    formHtml += '<label style="display:block;margin-bottom:5px;cursor:pointer;">' +
+      '<input type="checkbox" value="' + tableColumns[j] + '" ' + checked + ' style="margin-right:8px;">' +
+      tableColumns[j] + '</label>';
+  }
+  
+  formHtml += '</div></div></div>';
+  
+  showModal(currentLang === 'fr' ? '📊 Tableau avec boucle' : '📊 Table with loop', formHtml).then(function(confirmed) {
+    if (!confirmed) return;
+    
+    var filterCol = document.getElementById('loop-filter-col').value;
+    var filterVal = document.getElementById('loop-filter-val').value || (currentLang === 'fr' ? 'Valeur' : 'Value');
+    
+    // Get selected columns
+    var checkboxes = document.querySelectorAll('#loop-cols-checkboxes input[type="checkbox"]:checked');
+    var selectedCols = [];
+    checkboxes.forEach(function(cb) { selectedCols.push(cb.value); });
+    
+    if (selectedCols.length === 0) selectedCols = tableColumns.slice(0, 5);
+    
+    // Build table HTML
+    var headerCells = '';
+    var dataCells = '';
+    for (var k = 0; k < selectedCols.length; k++) {
+      headerCells += '<th style="border:1px solid #ccc;padding:8px;background:#f3f4f6;">' + selectedCols[k] + '</th>';
+      dataCells += '<td style="border:1px solid #ccc;padding:8px;">{{' + selectedCols[k] + '}}</td>';
+    }
+    
+    var tableHtml = '<table style="border-collapse:collapse;width:100%;margin:10px 0;">' +
+      '<thead><tr>' + headerCells + '</tr></thead>' +
+      '<tbody>' +
+      '<!--LOOP:' + filterCol + '=' + filterVal + '-->' +
+      '<tr>' + dataCells + '</tr>' +
+      '<!--/LOOP-->' +
+      '</tbody>' +
+      '</table>';
+    
+    editorInstance.selection.insertHTML(tableHtml);
+    showToast(t('tableLoopInserted'), 'info');
+  });
 }
 
 function insertVariable(colName) {
