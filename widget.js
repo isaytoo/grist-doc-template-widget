@@ -233,6 +233,9 @@ if (!isInsideGrist()) {
       await grist.ready({ requiredAccess: 'full' });
       console.log('Doc Template widget ready');
 
+      // Initialize editor FIRST so it's ready when we load templates
+      initEditor();
+
       // Listen for widget options (template stored in Grist)
       grist.onOptions(function(options) {
         if (options && options.template && selectedTable) {
@@ -245,8 +248,8 @@ if (!isInsideGrist()) {
         }
       });
 
+      // Load tables and restore selection
       await loadTables();
-      initEditor();
     } catch (error) {
       console.error('Init error:', error);
     }
