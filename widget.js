@@ -1205,26 +1205,15 @@ function resolveTemplate(html, record, forPdf) {
   if (forPdf) {
     resolved = resolved.replace(/<div[^>]*class="page-break-marker"[^>]*>[\s\S]*?<\/div>/g, '<div style="page-break-after:always;"></div>');
   }
-  // For PDF: strip variable styling and table borders
+  // For PDF: strip only variable styling (purple colors), keep table styles
   if (forPdf) {
+    // Remove variable highlight colors only
     resolved = resolved.replace(/background-color:\s*rgb\(243,\s*232,\s*255\);?/g, '');
     resolved = resolved.replace(/background-color:\s*#f3e8ff;?/g, '');
     resolved = resolved.replace(/color:\s*rgb\(124,\s*58,\s*237\);?/g, '');
     resolved = resolved.replace(/color:\s*#7c3aed;?/g, '');
-    // Strip all table/cell borders for clean PDF
-    resolved = resolved.replace(/(<table[^>]*?)style="[^"]*"/g, function(m, pre) {
-      return pre + 'style="border-collapse:collapse;width:100%;border:none;"';
-    });
-    resolved = resolved.replace(/(<td[^>]*?)style="[^"]*"/g, function(m, pre) {
-      return pre + 'style="border:none;padding:6px 10px;vertical-align:top;"';
-    });
-    resolved = resolved.replace(/(<th[^>]*?)style="[^"]*"/g, function(m, pre) {
-      return pre + 'style="border:none;padding:6px 10px;font-weight:bold;vertical-align:top;"';
-    });
-    // Also handle tables/cells without style attribute
-    resolved = resolved.replace(/<table(?![^>]*style=)/g, '<table style="border-collapse:collapse;width:100%;border:none;"');
-    resolved = resolved.replace(/<td(?![^>]*style=)/g, '<td style="border:none;padding:6px 10px;vertical-align:top;"');
-    resolved = resolved.replace(/<th(?![^>]*style=)/g, '<th style="border:none;padding:6px 10px;font-weight:bold;vertical-align:top;"');
+    // Keep table styles intact - only add border-collapse if missing
+    resolved = resolved.replace(/<table(?![^>]*style=)/g, '<table style="border-collapse:collapse;"');
   }
   return resolved;
 }
