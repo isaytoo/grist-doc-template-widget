@@ -333,13 +333,13 @@ function renderVariableChips() {
 function insertLoopSyntax() {
   if (!editorInstance) return;
   var exampleCol = tableColumns.length > 0 ? tableColumns[0] : 'Colonne';
-  var loopHtml = '<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:10px;margin:10px 0;">' +
-    '<span style="background:#f3e8ff;color:#7c3aed;padding:2px 6px;border-radius:4px;font-weight:600;" contenteditable="false">{{#each ' + exampleCol + '=Valeur}}</span>' +
-    '<br><br>' +
-    '<em style="color:#94a3b8;">' + (currentLang === 'fr' ? 'Contenu répété pour chaque ligne...' : 'Content repeated for each row...') + '</em>' +
-    '<br><br>' +
-    '<span style="background:#f3e8ff;color:#7c3aed;padding:2px 6px;border-radius:4px;font-weight:600;" contenteditable="false">{{/each}}</span>' +
-    '</div>';
+  var placeholder = currentLang === 'fr' ? 'Contenu répété ici...' : 'Repeated content here...';
+  
+  // Simple text-based loop - easier to edit
+  var loopHtml = '<p>{{#each ' + exampleCol + '=Valeur}}</p>' +
+    '<p>' + placeholder + '</p>' +
+    '<p>{{/each}}</p>';
+  
   editorInstance.selection.insertHTML(loopHtml);
   showToast(t('loopSyntax') + ' ' + (currentLang === 'fr' ? 'inséré' : 'inserted'), 'info');
 }
