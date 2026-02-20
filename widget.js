@@ -71,7 +71,8 @@ var i18n = {
     loopExample: 'Ex: {{#each Date=16/02/26}}{{Prenom}}<br>{{/each}}',
     tableLoopBtn: 'Tableau avec boucle',
     tableLoopHint: 'Insérer un tableau qui répète les lignes filtrées',
-    tableLoopInserted: 'Tableau avec boucle inséré'
+    tableLoopInserted: 'Tableau avec boucle inséré',
+    importBtn: 'Importer .docx'
   },
   en: {
     title: 'Document Template',
@@ -129,7 +130,8 @@ var i18n = {
     loopExample: 'Ex: {{#each Date=16/02/26}}{{FirstName}}<br>{{/each}}',
     tableLoopBtn: 'Table with loop',
     tableLoopHint: 'Insert a table that repeats filtered rows',
-    tableLoopInserted: 'Table with loop inserted'
+    tableLoopInserted: 'Table with loop inserted',
+    importBtn: 'Import .docx'
   }
 };
 
