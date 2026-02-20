@@ -518,6 +518,28 @@
       padding: 10px 14px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
+
+    /* ========== FIXED TOP BAR ========== */
+    .fixed-top-bar {
+      position: sticky;
+      top: 77px;
+      z-index: 98;
+      background: #f8fafc;
+      padding: 10px 12px 0 12px;
+      margin: -12px -12px 0 -12px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    /* ========== FIXED BOTTOM BAR ========== */
+    .fixed-bottom-bar {
+      position: sticky;
+      bottom: 28px;
+      z-index: 98;
+      background: #f8fafc;
+      padding: 10px 12px;
+      margin: 0 -12px -12px -12px;
+      border-top: 1px solid #e2e8f0;
+    }
     .table-selector label {
       font-weight: 700;
       font-size: 13px;
@@ -593,17 +615,28 @@
     <div class="tab-content active" id="tab-editor">
       <div class="main">
 
-        <!-- TABLE SELECTOR -->
-        <div class="table-selector">
-          <label data-i18n="selectTable">📊 Table source :</label>
-          <select id="table-select" onchange="onTableChange()">
-            <option value="">-- Choisir une table --</option>
-          </select>
-          <div class="spinner hidden" id="table-loading"></div>
+        <!-- FIXED TOP: TABLE SELECTOR + VARIABLES -->
+        <div class="fixed-top-bar">
+          <!-- TABLE SELECTOR -->
+          <div class="table-selector" style="margin-bottom:10px;">
+            <label data-i18n="selectTable">📊 Table source :</label>
+            <select id="table-select" onchange="onTableChange()">
+              <option value="">-- Choisir une table --</option>
+            </select>
+            <div class="spinner hidden" id="table-loading"></div>
+          </div>
+
+          <!-- VARIABLE PANEL -->
+          <div class="var-panel hidden" id="var-panel" style="margin-bottom:10px;">
+            <h3>🔤 <span data-i18n="varTitle">Variables disponibles</span>
+              <span style="font-weight:400; font-size:11px; color:#94a3b8;" data-i18n="varHint">(cliquez pour insérer)</span>
+            </h3>
+            <div id="var-chips"></div>
+          </div>
         </div>
 
         <!-- IMPORT WORD -->
-        <div class="import-section">
+        <div class="import-section" style="margin-top:10px;">
           <h3>📂 <span data-i18n="importTitle">Importer un document Word</span></h3>
           <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
             <input type="file" id="file-input" accept=".docx" onchange="importWord(this.files[0])" />
@@ -611,16 +644,8 @@
           </div>
         </div>
 
-        <!-- VARIABLE PANEL -->
-        <div class="var-panel hidden" id="var-panel">
-          <h3>🔤 <span data-i18n="varTitle">Variables disponibles</span>
-            <span style="font-weight:400; font-size:11px; color:#94a3b8;" data-i18n="varHint">(cliquez pour insérer)</span>
-          </h3>
-          <div id="var-chips"></div>
-        </div>
-
         <!-- PAGE FORMAT SELECTOR -->
-        <div style="margin-bottom:10px;display:flex;align-items:center;gap:12px;">
+        <div style="margin-bottom:10px;margin-top:10px;display:flex;align-items:center;gap:12px;">
           <label style="font-size:13px;font-weight:600;color:#475569;">📄 <span data-i18n="editorPageFormat">Format de page :</span></label>
           <select id="editor-page-format" onchange="setEditorPageFormat(this.value)" style="padding:4px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;">
             <option value="free">Libre (sans limite)</option>
@@ -636,26 +661,28 @@
           </div>
         </div>
 
-        <!-- TEMPLATE MANAGEMENT -->
-        <div class="template-manager" style="margin-top:14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
-            <label style="font-size:13px;font-weight:600;color:#475569;white-space:nowrap;" data-i18n="templateSelect">Modèles enregistrés :</label>
-            <select id="template-list" onchange="onTemplateSelectChange()" style="flex:1;min-width:180px;padding:5px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;">
-              <option value="">-- Nouveau modèle --</option>
-            </select>
-            <button class="btn btn-secondary btn-sm" onclick="deleteSelectedTemplate()" id="btn-delete-template" style="display:none;">
-              🗑️ <span data-i18n="templateDelete">Supprimer</span>
-            </button>
-          </div>
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <label style="font-size:13px;font-weight:600;color:#475569;white-space:nowrap;" data-i18n="templateName">Nom du modèle :</label>
-            <input type="text" id="template-name-input" placeholder="Ex: Courrier standard, PV réunion..." style="flex:1;min-width:180px;padding:5px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;" />
-            <button class="btn btn-primary btn-sm" onclick="saveTemplate()">
-              💾 <span data-i18n="saveTemplate">Sauvegarder</span>
-            </button>
-            <button class="btn btn-secondary btn-sm" onclick="clearEditor()">
-              🗑️ <span data-i18n="clearEditor">Vider</span>
-            </button>
+        <!-- FIXED BOTTOM: TEMPLATE MANAGEMENT -->
+        <div class="fixed-bottom-bar">
+          <div class="template-manager" style="background:white;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
+              <label style="font-size:13px;font-weight:600;color:#475569;white-space:nowrap;" data-i18n="templateSelect">Modèles enregistrés :</label>
+              <select id="template-list" onchange="onTemplateSelectChange()" style="flex:1;min-width:150px;padding:5px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;">
+                <option value="">-- Nouveau modèle --</option>
+              </select>
+              <button class="btn btn-secondary btn-sm" onclick="deleteSelectedTemplate()" id="btn-delete-template" style="display:none;">
+                🗑️ <span data-i18n="templateDelete">Supprimer</span>
+              </button>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <label style="font-size:13px;font-weight:600;color:#475569;white-space:nowrap;" data-i18n="templateName">Nom du modèle :</label>
+              <input type="text" id="template-name-input" placeholder="Ex: Courrier standard, PV réunion..." style="flex:1;min-width:150px;padding:5px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;" />
+              <button class="btn btn-primary btn-sm" onclick="saveTemplate()">
+                💾 <span data-i18n="saveTemplate">Sauvegarder</span>
+              </button>
+              <button class="btn btn-secondary btn-sm" onclick="clearEditor()">
+                🗑️ <span data-i18n="clearEditor">Vider</span>
+              </button>
+            </div>
           </div>
         </div>
 
