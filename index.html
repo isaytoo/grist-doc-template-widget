@@ -217,8 +217,8 @@
     .jodit-container { border: none !important; }
     .jodit-toolbar__box {
       position: sticky !important;
-      top: 77px !important;
-      z-index: 97 !important;
+      top: 155px !important;
+      z-index: 96 !important;
       background: white !important;
       border-bottom: 1px solid #e2e8f0 !important;
     }
@@ -558,13 +558,15 @@
 
     /* ========== FIXED TOP BAR ========== */
     .fixed-top-bar {
-      position: sticky;
+      position: fixed;
       top: 77px;
+      left: 0;
+      right: 0;
       z-index: 98;
       background: #f8fafc;
-      padding: 10px 12px 0 12px;
-      margin: -12px -12px 0 -12px;
+      padding: 8px 12px;
       border-bottom: 1px solid #e2e8f0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
 
     /* ========== FIXED BOTTOM BAR ========== */
@@ -582,6 +584,7 @@
 
     /* ========== EDITOR TAB LAYOUT ========== */
     #tab-editor .main {
+      padding-top: 80px; /* Space for fixed top bar */
       padding-bottom: 140px; /* Space for fixed bottom bar */
     }
     #tab-editor .jodit-workplace {
