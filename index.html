@@ -683,6 +683,9 @@
               <option value="a4" selected>A4</option>
               <option value="letter">Letter</option>
             </select>
+            <button class="btn btn-secondary btn-sm" onclick="clearEditor()" style="padding:3px 8px;">
+              🗑️ <span data-i18n="clearEditor">Vider</span>
+            </button>
           </div>
         </div>
         <div id="var-chips"></div>
@@ -720,9 +723,6 @@
           <input type="text" id="template-name-input" placeholder="Ex: Courrier standard, PV réunion..." style="flex:1;min-width:140px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;" />
           <button class="btn btn-primary btn-sm" onclick="saveTemplate()">
             💾 <span data-i18n="saveTemplate">Sauvegarder</span>
-          </button>
-          <button class="btn btn-secondary btn-sm" onclick="clearEditor()">
-            🗑️ <span data-i18n="clearEditor">Vider</span>
           </button>
         </div>
       </div>
