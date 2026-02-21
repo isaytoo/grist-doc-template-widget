@@ -1271,6 +1271,14 @@ function getRecordAt(index) {
 function formatValueForDisplay(value) {
   if (value === null || value === undefined || value === '') return '';
   
+  // Handle booleans - convert to readable format
+  if (value === true || value === 'true') {
+    return currentLang === 'fr' ? 'Oui' : 'Yes';
+  }
+  if (value === false || value === 'false') {
+    return currentLang === 'fr' ? 'Non' : 'No';
+  }
+  
   var str = String(value);
   
   // Check if it's a Grist timestamp (number of seconds since epoch, typically 10+ digits)
