@@ -15,6 +15,7 @@
 var currentLang = 'fr';
 var columnMetadata = {}; // Store column metadata (type, reference info)
 var referenceTables = {}; // Cache for referenced table data
+var referenceDisplayValues = {}; // Map ref table -> id -> display value (e.g., PARAMETRES -> 60 -> "DUMZ 60")
 
 var i18n = {
   fr: {
@@ -463,6 +464,18 @@ async function resolveReferences() {
         try {
           referenceTables[refTableName] = await grist.docApi.fetchTable(refTableName);
           console.log('Fetched reference table:', refTableName);
+          
+          // Build display values map for this reference table
+          // This maps ID -> display value (e.g., 60 -> "DUMZ 60")
+          referenceDisplayValues[refTableName] = {};
+          var refData = referenceTables[refTableName];
+          var refDisplayCol = findDisplayColumn(refData, null);
+          if (refData.id && refDisplayCol && refData[refDisplayCol]) {
+            for (var k = 0; k < refData.id.length; k++) {
+              referenceDisplayValues[refTableName][refData.id[k]] = refData[refDisplayCol][k];
+            }
+          }
+          console.log('Built reference display map for', refTableName, ':', Object.keys(referenceDisplayValues[refTableName]).length, 'entries');
         } catch (e) {
           console.warn('Could not fetch reference table:', refTableName, e);
           continue;
@@ -584,6 +597,8 @@ function getUniqueValuesForColumn(colName) {
   var values = tableData[colName];
   var unique = [];
   var seen = {};
+  
+  // Add resolved values from tableData
   for (var i = 0; i < values.length; i++) {
     var val = values[i];
     if (val !== null && val !== undefined && val !== '' && !seen[val]) {
@@ -591,6 +606,26 @@ function getUniqueValuesForColumn(colName) {
       unique.push(val);
     }
   }
+  
+  // For reference columns, also add the reference display values (e.g., "DUMZ 60")
+  var meta = columnMetadata[colName];
+  if (meta && meta.type) {
+    var refMatch = meta.type.match(/^Ref:(.+)$/);
+    if (refMatch) {
+      var refTableName = refMatch[1];
+      if (referenceDisplayValues[refTableName]) {
+        var refDisplayMap = referenceDisplayValues[refTableName];
+        for (var refId in refDisplayMap) {
+          var refVal = refDisplayMap[refId];
+          if (refVal && !seen[refVal]) {
+            seen[refVal] = true;
+            unique.push(refVal);
+          }
+        }
+      }
+    }
+  }
+  
   return unique.sort();
 }
 
@@ -1481,11 +1516,38 @@ function executeLoop(filterColumn, filterValue, loopContent, forPdf) {
     var normalizedCell = normalizeForComparison(cellStr);
     var normalizedFilter = normalizeForComparison(filterValue);
     
-    // Flexible matching: exact match, contains, or normalized match
+    // Check if filter value is a reference display value (e.g., "DUMZ 60")
+    // and if so, check if the resolved value matches
+    var refMatch = false;
+    var meta = columnMetadata[filterColumn];
+    if (meta && meta.type) {
+      var refTypeMatch = meta.type.match(/^Ref:(.+)$/);
+      if (refTypeMatch) {
+        var refTableName = refTypeMatch[1];
+        if (referenceDisplayValues[refTableName]) {
+          // Find if filterValue matches any reference display value
+          for (var refId in referenceDisplayValues[refTableName]) {
+            var refDisplayVal = referenceDisplayValues[refTableName][refId];
+            if (refDisplayVal === filterValue || 
+                normalizeForComparison(refDisplayVal) === normalizedFilter) {
+              // Check if the resolved cell value matches this reference's resolved value
+              var resolvedRefVal = lookupRefValue(referenceTables[refTableName], parseInt(refId), findDisplayColumn(referenceTables[refTableName], meta.visibleCol));
+              if (cellStr === resolvedRefVal || normalizedCell === normalizeForComparison(resolvedRefVal)) {
+                refMatch = true;
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    // Flexible matching: exact match, contains, normalized match, or reference match
     if (cellStr === filterValue || 
         cellStr.indexOf(filterValue) !== -1 ||
         normalizedCell === normalizedFilter ||
-        normalizedCell.indexOf(normalizedFilter) !== -1) {
+        normalizedCell.indexOf(normalizedFilter) !== -1 ||
+        refMatch) {
       matchingIndices.push(i);
     }
   }
