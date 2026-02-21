@@ -16,6 +16,7 @@ var currentLang = 'fr';
 var columnMetadata = {}; // Store column metadata (type, reference info)
 var referenceTables = {}; // Cache for referenced table data
 var referenceDisplayValues = {}; // Map ref table -> id -> display value (e.g., PARAMETRES -> 60 -> "DUMZ 60")
+var columnIdToName = {}; // Map column ID -> column name (for resolving visibleCol)
 
 var i18n = {
   fr: {
@@ -409,10 +410,16 @@ function scheduleAutoSave() {
 
 async function loadColumnMetadata(tableName) {
   columnMetadata = {};
+  columnIdToName = {};
   try {
     // Fetch _grist_Tables_column to get column types
     var colData = await grist.docApi.fetchTable('_grist_Tables_column');
     var tablesData = await grist.docApi.fetchTable('_grist_Tables');
+    
+    // Build global column ID -> name mapping (for all tables)
+    for (var j = 0; j < colData.id.length; j++) {
+      columnIdToName[colData.id[j]] = colData.colId[j];
+    }
     
     // Find table ID
     var tableId = null;
@@ -430,12 +437,15 @@ async function loadColumnMetadata(tableName) {
         var colId = colData.colId[i];
         var colType = colData.type[i];
         var displayCol = colData.displayCol[i];
-        var visibleCol = colData.visibleCol[i];
+        var visibleColId = colData.visibleCol[i];
+        
+        // Resolve visibleCol ID to column name
+        var visibleColName = visibleColId ? columnIdToName[visibleColId] : null;
         
         columnMetadata[colId] = {
           type: colType,
           displayCol: displayCol,
-          visibleCol: visibleCol
+          visibleCol: visibleColName // Now it's the column NAME, not ID
         };
       }
     }
