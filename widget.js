@@ -487,10 +487,13 @@ async function resolveReferences() {
             if (name) names.push(name);
           }
           resolvedValues.push(names.join(', '));
-        } else if (refId && typeof refId === 'number') {
-          // Single Reference
+        } else if (refId && typeof refId === 'number' && refId !== 0) {
+          // Single Reference (0 means empty reference)
           var displayValue = lookupRefValue(refTable, refId, displayColName);
           resolvedValues.push(displayValue || refId);
+        } else if (refId === 0 || refId === null || refId === undefined) {
+          // Empty reference
+          resolvedValues.push('');
         } else {
           resolvedValues.push(refId);
         }
