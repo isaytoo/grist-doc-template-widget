@@ -653,6 +653,104 @@ function insertVariable(colName) {
   showToast('{{' + colName + '}} inséré', 'info');
 }
 
+// Edit existing loop in a table
+function editTableLoop(tableElement) {
+  if (!editorInstance || !tableElement) return;
+  
+  // Find the loop comment in the table
+  var tbody = tableElement.querySelector('tbody');
+  if (!tbody) return;
+  
+  var loopComment = null;
+  var currentFilterCol = '';
+  var currentFilterVal = '';
+  
+  // Search for loop comment in tbody
+  for (var i = 0; i < tbody.childNodes.length; i++) {
+    var node = tbody.childNodes[i];
+    if (node.nodeType === 8) { // Comment node
+      var match = node.textContent.match(/^LOOP:([^=]+)=(.*)$/);
+      if (match) {
+        loopComment = node;
+        currentFilterCol = match[1];
+        currentFilterVal = match[2];
+        break;
+      }
+    }
+  }
+  
+  if (!loopComment) {
+    showToast(currentLang === 'fr' ? 'Aucune boucle trouvée dans ce tableau' : 'No loop found in this table', 'error');
+    return;
+  }
+  
+  // Build column selector options
+  var colOptions = '';
+  for (var i = 0; i < tableColumns.length; i++) {
+    var selected = tableColumns[i] === currentFilterCol ? 'selected' : '';
+    colOptions += '<option value="' + tableColumns[i] + '" ' + selected + '>' + tableColumns[i] + '</option>';
+  }
+  
+  var formHtml = '<div style="text-align:left;">' +
+    '<p style="margin-bottom:15px;">' + (currentLang === 'fr' ? 'Modifier le filtre de la boucle :' : 'Edit loop filter:') + '</p>' +
+    '<div style="margin-bottom:10px;">' +
+    '<label style="display:block;margin-bottom:5px;font-weight:600;">' + (currentLang === 'fr' ? 'Colonne à filtrer :' : 'Column to filter:') + '</label>' +
+    '<select id="edit-loop-filter-col" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">' + colOptions + '</select>' +
+    '</div>' +
+    '<div style="margin-bottom:10px;">' +
+    '<label style="display:block;margin-bottom:5px;font-weight:600;">' + (currentLang === 'fr' ? 'Valeur à rechercher :' : 'Value to search:') + '</label>' +
+    '<input type="text" id="edit-loop-filter-val" value="' + currentFilterVal + '" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">' +
+    '</div>' +
+    '</div>';
+  
+  showModal(currentLang === 'fr' ? '✏️ Modifier la boucle' : '✏️ Edit loop', formHtml).then(function(confirmed) {
+    if (!confirmed) return;
+    
+    var newFilterCol = document.getElementById('edit-loop-filter-col').value;
+    var newFilterVal = document.getElementById('edit-loop-filter-val').value || currentFilterVal;
+    
+    // Update the comment
+    loopComment.textContent = 'LOOP:' + newFilterCol + '=' + newFilterVal;
+    
+    showToast(currentLang === 'fr' ? 'Boucle modifiée !' : 'Loop updated!', 'success');
+    scheduleAutoSave();
+  });
+}
+
+// Remove loop edit button if exists
+function removeLoopEditButton() {
+  var existing = document.getElementById('loop-edit-btn');
+  if (existing) existing.remove();
+}
+
+// Show loop edit button near a table
+function showLoopEditButton(tableElement, event) {
+  removeLoopEditButton();
+  
+  var btn = document.createElement('button');
+  btn.id = 'loop-edit-btn';
+  btn.innerHTML = '✏️ ' + (currentLang === 'fr' ? 'Modifier la boucle' : 'Edit loop');
+  btn.style.cssText = 'position:absolute;z-index:9999;background:#8b5cf6;color:white;border:none;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.2);';
+  btn.onclick = function(e) {
+    e.stopPropagation();
+    editTableLoop(tableElement);
+    removeLoopEditButton();
+  };
+  
+  // Position near the click
+  var editorArea = document.querySelector('.jodit-wysiwyg');
+  if (editorArea) {
+    var rect = editorArea.getBoundingClientRect();
+    btn.style.left = (event.clientX - rect.left + editorArea.scrollLeft) + 'px';
+    btn.style.top = (event.clientY - rect.top + editorArea.scrollTop - 40) + 'px';
+    editorArea.style.position = 'relative';
+    editorArea.appendChild(btn);
+    
+    // Auto-hide after 5 seconds
+    setTimeout(removeLoopEditButton, 5000);
+  }
+}
+
 // =============================================================================
 // JODIT EDITOR
 // =============================================================================
@@ -707,6 +805,39 @@ function initEditor() {
     events: {
       change: function() {
         scheduleAutoSave();
+      },
+      click: function(e) {
+        // Check if clicked on a table with loop
+        var target = e.target;
+        var table = target.closest ? target.closest('table') : null;
+        if (!table) {
+          // Try parent elements
+          var el = target;
+          while (el && el.tagName !== 'TABLE') {
+            el = el.parentElement;
+          }
+          table = el;
+        }
+        
+        if (table) {
+          // Check if this table has a loop comment
+          var tbody = table.querySelector('tbody');
+          if (tbody) {
+            var hasLoop = false;
+            for (var i = 0; i < tbody.childNodes.length; i++) {
+              var node = tbody.childNodes[i];
+              if (node.nodeType === 8 && node.textContent.match(/^LOOP:/)) {
+                hasLoop = true;
+                break;
+              }
+            }
+            if (hasLoop) {
+              showLoopEditButton(table, e);
+              return;
+            }
+          }
+        }
+        removeLoopEditButton();
       }
     }
   });
