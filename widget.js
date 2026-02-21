@@ -471,6 +471,21 @@ async function resolveReferences() {
           referenceDisplayValues[refTableName] = {};
           var refData = referenceTables[refTableName];
           
+          // Log all columns for debugging
+          var allCols = Object.keys(refData).filter(function(c) { 
+            return c !== 'id' && c !== 'manualSort' && !c.startsWith('gristHelper_'); 
+          });
+          console.log('Reference table', refTableName, 'columns:', allCols.join(', '));
+          
+          // Sample first row values
+          if (refData.id && refData.id.length > 0) {
+            var sampleRow = {};
+            for (var c = 0; c < allCols.length; c++) {
+              sampleRow[allCols[c]] = refData[allCols[c]] ? refData[allCols[c]][0] : null;
+            }
+            console.log('Reference table', refTableName, 'sample row:', JSON.stringify(sampleRow));
+          }
+          
           // Find the identifier column - usually named like the table or contains rowId-like values
           var identifierCol = findIdentifierColumn(refData, refTableName);
           if (refData.id && identifierCol && refData[identifierCol]) {
@@ -561,26 +576,40 @@ function findIdentifierColumn(refTable, tableName) {
   // Look for a column that contains the reference identifier (e.g., "DUMZ 60")
   // This is typically the "rowId" column or a column named after the table
   
-  // First, try to find a column that starts with the table name or similar pattern
-  var tablePrefix = tableName.replace(/S$/, '').toUpperCase(); // PARAMETRES -> PARAMETRE
+  // First, try common identifier column names
+  var idNames = ['Code', 'code', 'ID', 'Identifiant', 'identifiant', 'Ref', 'ref', 'Reference', 'reference', 'Nom', 'nom', 'Name', 'name'];
+  for (var i = 0; i < idNames.length; i++) {
+    if (refTable[idNames[i]]) {
+      // Check if values look like identifiers with letters and numbers (e.g., "DUMZ 60")
+      var vals = refTable[idNames[i]];
+      if (vals && vals.length > 0) {
+        var sampleVal = String(vals[0] || '');
+        if (sampleVal.match(/^[A-Z]+\s*\d+$/i)) {
+          return idNames[i];
+        }
+      }
+    }
+  }
   
+  // Second pass: look for any column with values like "DUMZ 60" pattern
   for (var col in refTable) {
     if (col === 'id' || col === 'manualSort' || col.startsWith('gristHelper_')) continue;
     
-    // Check if column values contain the table-like prefix
     if (refTable[col] && refTable[col].length > 0) {
       var sampleVal = String(refTable[col][0] || '');
-      // Check if values look like identifiers (e.g., "DUMZ 60", "CUMZ", etc.)
-      if (sampleVal.match(/^[A-Z]+\s*\d*$/i) || sampleVal.match(/^[A-Z]{2,}/i)) {
+      // Check if values look like identifiers with letters and numbers (e.g., "DUMZ 60", "OCSR 12")
+      if (sampleVal.match(/^[A-Z]+\s*\d+$/i)) {
         return col;
       }
     }
   }
   
-  // Fallback: try common identifier column names
-  var idNames = ['Code', 'code', 'ID', 'Identifiant', 'identifiant', 'Ref', 'ref', 'Reference', 'reference'];
-  for (var i = 0; i < idNames.length; i++) {
-    if (refTable[idNames[i]]) return idNames[i];
+  // Third pass: look for column named like the table
+  var tableBaseName = tableName.replace(/S$/i, '').toUpperCase();
+  for (var col in refTable) {
+    if (col.toUpperCase().indexOf(tableBaseName) !== -1) {
+      return col;
+    }
   }
   
   // Last fallback: first text column
