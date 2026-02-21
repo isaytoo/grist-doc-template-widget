@@ -628,12 +628,24 @@ function getUniqueValuesForColumn(colName) {
   var unique = [];
   var seen = {};
   
+  // Check if this is a date column
+  var meta = columnMetadata[colName];
+  var isDateColumn = meta && meta.type && (meta.type === 'Date' || meta.type === 'DateTime');
+  
   // Add resolved values from tableData (current table rows)
   for (var i = 0; i < values.length; i++) {
     var val = values[i];
     if (val !== null && val !== undefined && val !== '' && !seen[val]) {
-      seen[val] = true;
-      unique.push(val);
+      // Format dates for display
+      var displayVal = val;
+      if (isDateColumn && typeof val === 'number') {
+        var date = new Date(val * 1000);
+        displayVal = date.toLocaleDateString(currentLang === 'fr' ? 'fr-FR' : 'en-US');
+      }
+      if (!seen[displayVal]) {
+        seen[displayVal] = true;
+        unique.push(displayVal);
+      }
     }
   }
   
