@@ -716,7 +716,16 @@ function insertTableWithLoop() {
   }
   
   var formHtml = '<div style="text-align:left;">' +
-    '<p style="margin-bottom:15px;">' + (currentLang === 'fr' ? 'Configurez le filtre pour répéter les lignes du tableau :' : 'Configure the filter to repeat table rows:') + '</p>' +
+    '<div style="margin-bottom:15px;">' +
+    '<label style="display:block;margin-bottom:8px;font-weight:600;">' + (currentLang === 'fr' ? 'Type de tableau :' : 'Table type:') + '</label>' +
+    '<label style="display:block;margin-bottom:5px;cursor:pointer;">' +
+    '<input type="radio" name="loop-type" value="view" checked style="margin-right:8px;">' +
+    (currentLang === 'fr' ? 'Lié à la vue (affiche toutes les lignes visibles)' : 'Linked to view (shows all visible rows)') + '</label>' +
+    '<label style="display:block;margin-bottom:5px;cursor:pointer;">' +
+    '<input type="radio" name="loop-type" value="filter" style="margin-right:8px;">' +
+    (currentLang === 'fr' ? 'Avec filtre (filtrer par colonne/valeur)' : 'With filter (filter by column/value)') + '</label>' +
+    '</div>' +
+    '<div id="filter-options" style="display:none;border:1px solid #e5e7eb;padding:10px;border-radius:6px;margin-bottom:10px;background:#f9fafb;">' +
     '<div style="margin-bottom:10px;">' +
     '<label style="display:block;margin-bottom:5px;font-weight:600;">' + (currentLang === 'fr' ? 'Colonne à filtrer :' : 'Column to filter:') + '</label>' +
     '<select id="loop-filter-col" onchange="updateLoopValueOptions()" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">' + colOptions + '</select>' +
@@ -727,6 +736,7 @@ function insertTableWithLoop() {
     '<option value="">' + (currentLang === 'fr' ? '-- Choisir une valeur --' : '-- Choose a value --') + '</option>' +
     '</select>' +
     '<input type="text" id="loop-filter-val" placeholder="' + (currentLang === 'fr' ? 'Ou saisir manuellement...' : 'Or type manually...') + '" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">' +
+    '</div>' +
     '</div>' +
     '<div style="margin-bottom:10px;">' +
     '<label style="display:block;margin-bottom:5px;font-weight:600;">' + (currentLang === 'fr' ? 'Colonnes à afficher :' : 'Columns to display:') + '</label>' +
@@ -741,17 +751,38 @@ function insertTableWithLoop() {
   
   formHtml += '</div></div></div>';
   
-  // Show modal and initialize value dropdown
-  setTimeout(function() { updateLoopValueOptions(); }, 100);
+  // Show modal and initialize value dropdown + radio button handlers
+  setTimeout(function() { 
+    updateLoopValueOptions();
+    // Add event listeners for radio buttons
+    var radios = document.querySelectorAll('input[name="loop-type"]');
+    radios.forEach(function(radio) {
+      radio.addEventListener('change', function() {
+        var filterOptions = document.getElementById('filter-options');
+        if (filterOptions) {
+          filterOptions.style.display = this.value === 'filter' ? 'block' : 'none';
+        }
+      });
+    });
+  }, 100);
   
   showModal(currentLang === 'fr' ? '📊 Tableau avec boucle' : '📊 Table with loop', formHtml).then(function(confirmed) {
     if (!confirmed) return;
     
-    var filterCol = document.getElementById('loop-filter-col').value;
-    // Use dropdown value if selected, otherwise use text input
-    var filterValSelect = document.getElementById('loop-filter-val-select');
-    var filterValInput = document.getElementById('loop-filter-val');
-    var filterVal = (filterValSelect && filterValSelect.value) || (filterValInput && filterValInput.value) || (currentLang === 'fr' ? 'Valeur' : 'Value');
+    // Check which type is selected
+    var loopType = document.querySelector('input[name="loop-type"]:checked');
+    var isViewLinked = loopType && loopType.value === 'view';
+    
+    var filterCol = '';
+    var filterVal = '';
+    
+    if (!isViewLinked) {
+      filterCol = document.getElementById('loop-filter-col').value;
+      // Use dropdown value if selected, otherwise use text input
+      var filterValSelect = document.getElementById('loop-filter-val-select');
+      var filterValInput = document.getElementById('loop-filter-val');
+      filterVal = (filterValSelect && filterValSelect.value) || (filterValInput && filterValInput.value) || (currentLang === 'fr' ? 'Valeur' : 'Value');
+    }
     
     // Get selected columns
     var checkboxes = document.querySelectorAll('#loop-cols-checkboxes input[type="checkbox"]:checked');
@@ -768,14 +799,28 @@ function insertTableWithLoop() {
       dataCells += '<td style="border:1px solid #ccc;padding:8px;">{{' + selectedCols[k] + '}}</td>';
     }
     
-    var tableHtml = '<table style="border-collapse:collapse;width:100%;margin:10px 0;">' +
-      '<thead><tr>' + headerCells + '</tr></thead>' +
-      '<tbody>' +
-      '<!--LOOP:' + filterCol + '=' + filterVal + '-->' +
-      '<tr>' + dataCells + '</tr>' +
-      '<!--/LOOP-->' +
-      '</tbody>' +
-      '</table>';
+    var tableHtml;
+    if (isViewLinked) {
+      // View-linked table: uses <!--LOOP:*--> to show all rows from the view
+      tableHtml = '<table style="border-collapse:collapse;width:100%;margin:10px 0;">' +
+        '<thead><tr>' + headerCells + '</tr></thead>' +
+        '<tbody>' +
+        '<!--LOOP:*-->' +
+        '<tr>' + dataCells + '</tr>' +
+        '<!--/LOOP-->' +
+        '</tbody>' +
+        '</table>';
+    } else {
+      // Filtered table
+      tableHtml = '<table style="border-collapse:collapse;width:100%;margin:10px 0;">' +
+        '<thead><tr>' + headerCells + '</tr></thead>' +
+        '<tbody>' +
+        '<!--LOOP:' + filterCol + '=' + filterVal + '-->' +
+        '<tr>' + dataCells + '</tr>' +
+        '<!--/LOOP-->' +
+        '</tbody>' +
+        '</table>';
+    }
     
     editorInstance.selection.insertHTML(tableHtml);
     showToast(t('tableLoopInserted'), 'info');
@@ -802,9 +847,15 @@ function editTableLoop(tableElement) {
   var currentFilterVal = '';
   
   // Search for loop comment in tbody
+  var isViewLinked = false;
   for (var i = 0; i < tbody.childNodes.length; i++) {
     var node = tbody.childNodes[i];
     if (node.nodeType === 8) { // Comment node
+      if (node.textContent === 'LOOP:*') {
+        loopComment = node;
+        isViewLinked = true;
+        break;
+      }
       var match = node.textContent.match(/^LOOP:([^=]+)=(.*)$/);
       if (match) {
         loopComment = node;
@@ -828,7 +879,7 @@ function editTableLoop(tableElement) {
   }
   
   // Build value options for current column
-  var uniqueVals = getUniqueValuesForColumn(currentFilterCol);
+  var uniqueVals = getUniqueValuesForColumn(currentFilterCol || tableColumns[0]);
   var valOptions = '<option value="">' + (currentLang === 'fr' ? '-- Choisir une valeur --' : '-- Choose a value --') + '</option>';
   for (var j = 0; j < uniqueVals.length; j++) {
     var selVal = uniqueVals[j] === currentFilterVal ? 'selected' : '';
@@ -836,7 +887,16 @@ function editTableLoop(tableElement) {
   }
   
   var formHtml = '<div style="text-align:left;">' +
-    '<p style="margin-bottom:15px;">' + (currentLang === 'fr' ? 'Modifier le filtre de la boucle :' : 'Edit loop filter:') + '</p>' +
+    '<div style="margin-bottom:15px;">' +
+    '<label style="display:block;margin-bottom:8px;font-weight:600;">' + (currentLang === 'fr' ? 'Type de tableau :' : 'Table type:') + '</label>' +
+    '<label style="display:block;margin-bottom:5px;cursor:pointer;">' +
+    '<input type="radio" name="edit-loop-type" value="view" ' + (isViewLinked ? 'checked' : '') + ' style="margin-right:8px;">' +
+    (currentLang === 'fr' ? 'Lié à la vue (toutes les lignes)' : 'Linked to view (all rows)') + '</label>' +
+    '<label style="display:block;margin-bottom:5px;cursor:pointer;">' +
+    '<input type="radio" name="edit-loop-type" value="filter" ' + (!isViewLinked ? 'checked' : '') + ' style="margin-right:8px;">' +
+    (currentLang === 'fr' ? 'Avec filtre' : 'With filter') + '</label>' +
+    '</div>' +
+    '<div id="edit-filter-options" style="' + (isViewLinked ? 'display:none;' : '') + 'border:1px solid #e5e7eb;padding:10px;border-radius:6px;background:#f9fafb;">' +
     '<div style="margin-bottom:10px;">' +
     '<label style="display:block;margin-bottom:5px;font-weight:600;">' + (currentLang === 'fr' ? 'Colonne à filtrer :' : 'Column to filter:') + '</label>' +
     '<select id="edit-loop-filter-col" onchange="updateEditLoopValueOptions()" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">' + colOptions + '</select>' +
@@ -846,18 +906,37 @@ function editTableLoop(tableElement) {
     '<select id="edit-loop-filter-val-select" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;margin-bottom:5px;">' + valOptions + '</select>' +
     '<input type="text" id="edit-loop-filter-val" value="' + currentFilterVal + '" placeholder="' + (currentLang === 'fr' ? 'Ou saisir manuellement...' : 'Or type manually...') + '" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">' +
     '</div>' +
+    '</div>' +
     '</div>';
+  
+  // Add event listeners for radio buttons after modal opens
+  setTimeout(function() {
+    var radios = document.querySelectorAll('input[name="edit-loop-type"]');
+    radios.forEach(function(radio) {
+      radio.addEventListener('change', function() {
+        var filterOptions = document.getElementById('edit-filter-options');
+        if (filterOptions) {
+          filterOptions.style.display = this.value === 'filter' ? 'block' : 'none';
+        }
+      });
+    });
+  }, 100);
   
   showModal(currentLang === 'fr' ? '✏️ Modifier la boucle' : '✏️ Edit loop', formHtml).then(function(confirmed) {
     if (!confirmed) return;
     
-    var newFilterCol = document.getElementById('edit-loop-filter-col').value;
-    var newFilterValSelect = document.getElementById('edit-loop-filter-val-select');
-    var newFilterValInput = document.getElementById('edit-loop-filter-val');
-    var newFilterVal = (newFilterValSelect && newFilterValSelect.value) || (newFilterValInput && newFilterValInput.value) || currentFilterVal;
+    var loopType = document.querySelector('input[name="edit-loop-type"]:checked');
+    var newIsViewLinked = loopType && loopType.value === 'view';
     
-    // Update the comment
-    loopComment.textContent = 'LOOP:' + newFilterCol + '=' + newFilterVal;
+    if (newIsViewLinked) {
+      loopComment.textContent = 'LOOP:*';
+    } else {
+      var newFilterCol = document.getElementById('edit-loop-filter-col').value;
+      var newFilterValSelect = document.getElementById('edit-loop-filter-val-select');
+      var newFilterValInput = document.getElementById('edit-loop-filter-val');
+      var newFilterVal = (newFilterValSelect && newFilterValSelect.value) || (newFilterValInput && newFilterValInput.value) || currentFilterVal;
+      loopComment.textContent = 'LOOP:' + newFilterCol + '=' + newFilterVal;
+    }
     
     showToast(currentLang === 'fr' ? 'Boucle modifiée !' : 'Loop updated!', 'success');
     scheduleAutoSave();
@@ -924,6 +1003,45 @@ function initEditor() {
             '</div>'
           );
         }
+      },
+      verticaltext: {
+        name: 'verticaltext',
+        iconURL: '',
+        tooltip: currentLang === 'fr' ? 'Texte vertical' : 'Vertical text',
+        exec: function(editor) {
+          var selection = editor.selection;
+          var current = selection.current();
+          if (current) {
+            // Find the closest cell (td or th)
+            var cell = current.closest ? current.closest('td, th') : null;
+            if (!cell) {
+              var el = current;
+              while (el && el.tagName !== 'TD' && el.tagName !== 'TH') {
+                el = el.parentElement;
+              }
+              cell = el;
+            }
+            if (cell) {
+              // Toggle vertical text
+              var currentMode = cell.style.writingMode;
+              if (currentMode === 'vertical-rl') {
+                cell.style.writingMode = '';
+                cell.style.textOrientation = '';
+                cell.style.whiteSpace = '';
+              } else {
+                cell.style.writingMode = 'vertical-rl';
+                cell.style.textOrientation = 'mixed';
+                cell.style.whiteSpace = 'nowrap';
+              }
+            } else {
+              // Not in a table cell, wrap selection in a span
+              var html = selection.html;
+              if (html) {
+                selection.insertHTML('<span style="writing-mode:vertical-rl;text-orientation:mixed;display:inline-block;">' + html + '</span>');
+              }
+            }
+          }
+        }
       }
     },
     buttons: [
@@ -933,7 +1051,7 @@ function initEditor() {
       'paragraph', '|',
       'ul', 'ol', '|',
       'outdent', 'indent', '|',
-      'align', '|',
+      'align', 'verticaltext', '|',
       'table', '|',
       'link', 'image', '|',
       'hr', 'pagebreak', '|',
@@ -1488,9 +1606,19 @@ function processLoops(html, forPdf) {
   var resolved = html;
   
   // Process HTML comment-based loops (for tables): <!--LOOP:Column=Value-->...<!--/LOOP-->
-  var commentLoopRegex = /<!--LOOP:([^=]+)=([^-]+)-->([\s\S]*?)<!--\/LOOP-->/gi;
-  resolved = resolved.replace(commentLoopRegex, function(match, filterCol, filterVal, loopContent) {
-    return executeLoop(filterCol.trim(), filterVal.trim(), loopContent, forPdf);
+  // Also supports <!--LOOP:*--> for view-linked tables (all rows)
+  var commentLoopRegex = /<!--LOOP:(\*|[^=]+=[^-]+)-->([\s\S]*?)<!--\/LOOP-->/gi;
+  resolved = resolved.replace(commentLoopRegex, function(match, loopSpec, loopContent) {
+    if (loopSpec === '*') {
+      // View-linked: show all rows
+      return executeLoopAllRows(loopContent, forPdf);
+    } else {
+      // Filtered: parse Column=Value
+      var parts = loopSpec.split('=');
+      var filterCol = parts[0].trim();
+      var filterVal = parts.slice(1).join('=').trim(); // Handle values with = in them
+      return executeLoop(filterCol, filterVal, loopContent, forPdf);
+    }
   });
   
   // Special case: handle loops inside table rows
@@ -1529,6 +1657,59 @@ function processLoops(html, forPdf) {
   });
   
   return resolved;
+}
+
+function executeLoopAllRows(loopContent, forPdf) {
+  // Execute loop for ALL rows in the current view (no filtering)
+  if (!tableData || !tableColumns.length) return '';
+  
+  // Get the number of rows from the first column
+  var firstCol = tableColumns[0];
+  var rowCount = tableData[firstCol] ? tableData[firstCol].length : 0;
+  
+  if (rowCount === 0) {
+    return '<span style="color:#f59e0b;font-style:italic;">[' + (currentLang === 'fr' ? 'Aucune ligne dans la vue' : 'No rows in view') + ']</span>';
+  }
+  
+  // Generate output for each row
+  var output = '';
+  for (var j = 0; j < rowCount; j++) {
+    var rowRecord = getRecordAt(j);
+    
+    // Resolve variables in loopContent for this row
+    var rowHtml = loopContent;
+    for (var col in rowRecord) {
+      var val = rowRecord[col];
+      var display = formatValueForDisplay(val);
+      
+      // Replace styled spans
+      var styledRegex = new RegExp('<span[^>]*>\\{\\{' + escapeRegex(col) + '\\}\\}</span>', 'g');
+      if (display) {
+        if (forPdf) {
+          rowHtml = rowHtml.replace(styledRegex, '<strong>' + sanitize(display) + '</strong>');
+        } else {
+          rowHtml = rowHtml.replace(styledRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
+        }
+      } else {
+        rowHtml = rowHtml.replace(styledRegex, '');
+      }
+      
+      // Replace plain text variables
+      var plainRegex = new RegExp('\\{\\{' + escapeRegex(col) + '\\}\\}', 'g');
+      if (display) {
+        if (forPdf) {
+          rowHtml = rowHtml.replace(plainRegex, '<strong>' + sanitize(display) + '</strong>');
+        } else {
+          rowHtml = rowHtml.replace(plainRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
+        }
+      } else {
+        rowHtml = rowHtml.replace(plainRegex, '');
+      }
+    }
+    output += rowHtml;
+  }
+  
+  return output;
 }
 
 function executeLoop(filterColumn, filterValue, loopContent, forPdf) {
