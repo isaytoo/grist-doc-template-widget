@@ -466,19 +466,34 @@ async function resolveReferences() {
           console.log('Fetched reference table:', refTableName);
           
           // Build display values map using visibleCol from the reference column metadata
-          // This is the column Grist uses to display reference values (e.g., "DUMZ 60")
-          referenceDisplayValues[refTableName] = {};
+          // This is the column Grist uses to display reference values
+          referenceDisplayValues[refTableName] = { byVisibleCol: {}, byFirstTextCol: {} };
           var refData = referenceTables[refTableName];
           
           // Use visibleCol from metadata if available, otherwise find display column
           var visibleColName = meta.visibleCol || findDisplayColumn(refData, null);
-          if (refData.id && visibleColName && refData[visibleColName]) {
-            for (var k = 0; k < refData.id.length; k++) {
-              referenceDisplayValues[refTableName][refData.id[k]] = refData[visibleColName][k];
+          
+          // Also find the first text column (often contains identifiers like "DUMZ 60")
+          var firstTextCol = null;
+          for (var colKey in refData) {
+            if (colKey !== 'id' && colKey !== 'manualSort' && !colKey.startsWith('gristHelper_')) {
+              if (refData[colKey] && refData[colKey].length > 0 && typeof refData[colKey][0] === 'string') {
+                firstTextCol = colKey;
+                break;
+              }
             }
-            console.log('Built reference display map for', refTableName, 'using visibleCol', visibleColName, ':', Object.keys(referenceDisplayValues[refTableName]).length, 'entries');
-          } else {
-            console.log('Could not build reference display map for', refTableName, '- visibleCol:', visibleColName);
+          }
+          
+          if (refData.id) {
+            for (var k = 0; k < refData.id.length; k++) {
+              if (visibleColName && refData[visibleColName]) {
+                referenceDisplayValues[refTableName].byVisibleCol[refData.id[k]] = refData[visibleColName][k];
+              }
+              if (firstTextCol && refData[firstTextCol] && firstTextCol !== visibleColName) {
+                referenceDisplayValues[refTableName].byFirstTextCol[refData.id[k]] = refData[firstTextCol][k];
+              }
+            }
+            console.log('Built reference display map for', refTableName, '- visibleCol:', visibleColName, ', firstTextCol:', firstTextCol);
           }
         } catch (e) {
           console.warn('Could not fetch reference table:', refTableName, e);
@@ -618,16 +633,25 @@ function getUniqueValuesForColumn(colName) {
     var refMatch = meta.type.match(/^Ref:(.+)$/);
     if (refMatch) {
       var refTableName = refMatch[1];
-      var refTable = referenceTables[refTableName];
-      if (refTable) {
-        // Add all values from visibleCol (the display column configured in Grist)
-        var visibleColName = meta.visibleCol || findDisplayColumn(refTable, null);
-        if (visibleColName && refTable[visibleColName]) {
-          for (var j = 0; j < refTable[visibleColName].length; j++) {
-            var refVal = refTable[visibleColName][j];
+      var refDisplayData = referenceDisplayValues[refTableName];
+      if (refDisplayData) {
+        // Add values from visibleCol (the display column configured in Grist)
+        if (refDisplayData.byVisibleCol) {
+          for (var refId in refDisplayData.byVisibleCol) {
+            var refVal = refDisplayData.byVisibleCol[refId];
             if (refVal && !seen[refVal]) {
               seen[refVal] = true;
               unique.push(refVal);
+            }
+          }
+        }
+        // Also add values from first text column (often contains identifiers like "DUMZ 60")
+        if (refDisplayData.byFirstTextCol) {
+          for (var refId2 in refDisplayData.byFirstTextCol) {
+            var refVal2 = refDisplayData.byFirstTextCol[refId2];
+            if (refVal2 && !seen[refVal2]) {
+              seen[refVal2] = true;
+              unique.push(refVal2);
             }
           }
         }
@@ -1533,17 +1557,23 @@ function executeLoop(filterColumn, filterValue, loopContent, forPdf) {
       var refTypeMatch = meta.type.match(/^Ref:(.+)$/);
       if (refTypeMatch) {
         var refTableName = refTypeMatch[1];
-        if (referenceDisplayValues[refTableName]) {
-          // Find if filterValue matches any reference display value
-          for (var refId in referenceDisplayValues[refTableName]) {
-            var refDisplayVal = referenceDisplayValues[refTableName][refId];
-            if (refDisplayVal === filterValue || 
-                normalizeForComparison(refDisplayVal) === normalizedFilter) {
-              // Check if the resolved cell value matches this reference's resolved value
-              var resolvedRefVal = lookupRefValue(referenceTables[refTableName], parseInt(refId), findDisplayColumn(referenceTables[refTableName], meta.visibleCol));
-              if (cellStr === resolvedRefVal || normalizedCell === normalizeForComparison(resolvedRefVal)) {
-                refMatch = true;
-                break;
+        var refDisplayData = referenceDisplayValues[refTableName];
+        if (refDisplayData) {
+          // Check both byVisibleCol and byFirstTextCol for matching filter value
+          var allRefMaps = [refDisplayData.byVisibleCol, refDisplayData.byFirstTextCol];
+          for (var mapIdx = 0; mapIdx < allRefMaps.length && !refMatch; mapIdx++) {
+            var refMap = allRefMaps[mapIdx];
+            if (!refMap) continue;
+            for (var refId in refMap) {
+              var refDisplayVal = refMap[refId];
+              if (refDisplayVal === filterValue || 
+                  normalizeForComparison(refDisplayVal) === normalizedFilter) {
+                // Check if the resolved cell value matches this reference's resolved value
+                var resolvedRefVal = lookupRefValue(referenceTables[refTableName], parseInt(refId), findDisplayColumn(referenceTables[refTableName], meta.visibleCol));
+                if (cellStr === resolvedRefVal || normalizedCell === normalizeForComparison(resolvedRefVal)) {
+                  refMatch = true;
+                  break;
+                }
               }
             }
           }
