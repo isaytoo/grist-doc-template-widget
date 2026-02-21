@@ -579,6 +579,55 @@ function insertLoopSyntax() {
   showToast(t('loopSyntax') + ' ' + (currentLang === 'fr' ? 'inséré' : 'inserted'), 'info');
 }
 
+function getUniqueValuesForColumn(colName) {
+  if (!tableData || !tableData[colName]) return [];
+  var values = tableData[colName];
+  var unique = [];
+  var seen = {};
+  for (var i = 0; i < values.length; i++) {
+    var val = values[i];
+    if (val !== null && val !== undefined && val !== '' && !seen[val]) {
+      seen[val] = true;
+      unique.push(val);
+    }
+  }
+  return unique.sort();
+}
+
+function updateLoopValueOptions() {
+  var colSelect = document.getElementById('loop-filter-col');
+  var valSelect = document.getElementById('loop-filter-val-select');
+  if (!colSelect || !valSelect) return;
+  
+  var colName = colSelect.value;
+  var uniqueVals = getUniqueValuesForColumn(colName);
+  
+  valSelect.innerHTML = '<option value="">' + (currentLang === 'fr' ? '-- Choisir une valeur --' : '-- Choose a value --') + '</option>';
+  for (var i = 0; i < uniqueVals.length; i++) {
+    var opt = document.createElement('option');
+    opt.value = uniqueVals[i];
+    opt.textContent = uniqueVals[i];
+    valSelect.appendChild(opt);
+  }
+}
+
+function updateEditLoopValueOptions() {
+  var colSelect = document.getElementById('edit-loop-filter-col');
+  var valSelect = document.getElementById('edit-loop-filter-val-select');
+  if (!colSelect || !valSelect) return;
+  
+  var colName = colSelect.value;
+  var uniqueVals = getUniqueValuesForColumn(colName);
+  
+  valSelect.innerHTML = '<option value="">' + (currentLang === 'fr' ? '-- Choisir une valeur --' : '-- Choose a value --') + '</option>';
+  for (var i = 0; i < uniqueVals.length; i++) {
+    var opt = document.createElement('option');
+    opt.value = uniqueVals[i];
+    opt.textContent = uniqueVals[i];
+    valSelect.appendChild(opt);
+  }
+}
+
 function insertTableWithLoop() {
   if (!editorInstance) return;
   
@@ -592,11 +641,14 @@ function insertTableWithLoop() {
     '<p style="margin-bottom:15px;">' + (currentLang === 'fr' ? 'Configurez le filtre pour répéter les lignes du tableau :' : 'Configure the filter to repeat table rows:') + '</p>' +
     '<div style="margin-bottom:10px;">' +
     '<label style="display:block;margin-bottom:5px;font-weight:600;">' + (currentLang === 'fr' ? 'Colonne à filtrer :' : 'Column to filter:') + '</label>' +
-    '<select id="loop-filter-col" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">' + colOptions + '</select>' +
+    '<select id="loop-filter-col" onchange="updateLoopValueOptions()" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">' + colOptions + '</select>' +
     '</div>' +
     '<div style="margin-bottom:10px;">' +
     '<label style="display:block;margin-bottom:5px;font-weight:600;">' + (currentLang === 'fr' ? 'Valeur à rechercher :' : 'Value to search:') + '</label>' +
-    '<input type="text" id="loop-filter-val" placeholder="' + (currentLang === 'fr' ? 'Ex: 16/02/2026' : 'E.g.: 16/02/2026') + '" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">' +
+    '<select id="loop-filter-val-select" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;margin-bottom:5px;">' +
+    '<option value="">' + (currentLang === 'fr' ? '-- Choisir une valeur --' : '-- Choose a value --') + '</option>' +
+    '</select>' +
+    '<input type="text" id="loop-filter-val" placeholder="' + (currentLang === 'fr' ? 'Ou saisir manuellement...' : 'Or type manually...') + '" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">' +
     '</div>' +
     '<div style="margin-bottom:10px;">' +
     '<label style="display:block;margin-bottom:5px;font-weight:600;">' + (currentLang === 'fr' ? 'Colonnes à afficher :' : 'Columns to display:') + '</label>' +
@@ -611,11 +663,17 @@ function insertTableWithLoop() {
   
   formHtml += '</div></div></div>';
   
+  // Show modal and initialize value dropdown
+  setTimeout(function() { updateLoopValueOptions(); }, 100);
+  
   showModal(currentLang === 'fr' ? '📊 Tableau avec boucle' : '📊 Table with loop', formHtml).then(function(confirmed) {
     if (!confirmed) return;
     
     var filterCol = document.getElementById('loop-filter-col').value;
-    var filterVal = document.getElementById('loop-filter-val').value || (currentLang === 'fr' ? 'Valeur' : 'Value');
+    // Use dropdown value if selected, otherwise use text input
+    var filterValSelect = document.getElementById('loop-filter-val-select');
+    var filterValInput = document.getElementById('loop-filter-val');
+    var filterVal = (filterValSelect && filterValSelect.value) || (filterValInput && filterValInput.value) || (currentLang === 'fr' ? 'Valeur' : 'Value');
     
     // Get selected columns
     var checkboxes = document.querySelectorAll('#loop-cols-checkboxes input[type="checkbox"]:checked');
@@ -691,15 +749,24 @@ function editTableLoop(tableElement) {
     colOptions += '<option value="' + tableColumns[i] + '" ' + selected + '>' + tableColumns[i] + '</option>';
   }
   
+  // Build value options for current column
+  var uniqueVals = getUniqueValuesForColumn(currentFilterCol);
+  var valOptions = '<option value="">' + (currentLang === 'fr' ? '-- Choisir une valeur --' : '-- Choose a value --') + '</option>';
+  for (var j = 0; j < uniqueVals.length; j++) {
+    var selVal = uniqueVals[j] === currentFilterVal ? 'selected' : '';
+    valOptions += '<option value="' + uniqueVals[j] + '" ' + selVal + '>' + uniqueVals[j] + '</option>';
+  }
+  
   var formHtml = '<div style="text-align:left;">' +
     '<p style="margin-bottom:15px;">' + (currentLang === 'fr' ? 'Modifier le filtre de la boucle :' : 'Edit loop filter:') + '</p>' +
     '<div style="margin-bottom:10px;">' +
     '<label style="display:block;margin-bottom:5px;font-weight:600;">' + (currentLang === 'fr' ? 'Colonne à filtrer :' : 'Column to filter:') + '</label>' +
-    '<select id="edit-loop-filter-col" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">' + colOptions + '</select>' +
+    '<select id="edit-loop-filter-col" onchange="updateEditLoopValueOptions()" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">' + colOptions + '</select>' +
     '</div>' +
     '<div style="margin-bottom:10px;">' +
     '<label style="display:block;margin-bottom:5px;font-weight:600;">' + (currentLang === 'fr' ? 'Valeur à rechercher :' : 'Value to search:') + '</label>' +
-    '<input type="text" id="edit-loop-filter-val" value="' + currentFilterVal + '" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">' +
+    '<select id="edit-loop-filter-val-select" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;margin-bottom:5px;">' + valOptions + '</select>' +
+    '<input type="text" id="edit-loop-filter-val" value="' + currentFilterVal + '" placeholder="' + (currentLang === 'fr' ? 'Ou saisir manuellement...' : 'Or type manually...') + '" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">' +
     '</div>' +
     '</div>';
   
@@ -707,7 +774,9 @@ function editTableLoop(tableElement) {
     if (!confirmed) return;
     
     var newFilterCol = document.getElementById('edit-loop-filter-col').value;
-    var newFilterVal = document.getElementById('edit-loop-filter-val').value || currentFilterVal;
+    var newFilterValSelect = document.getElementById('edit-loop-filter-val-select');
+    var newFilterValInput = document.getElementById('edit-loop-filter-val');
+    var newFilterVal = (newFilterValSelect && newFilterValSelect.value) || (newFilterValInput && newFilterValInput.value) || currentFilterVal;
     
     // Update the comment
     loopComment.textContent = 'LOOP:' + newFilterCol + '=' + newFilterVal;
