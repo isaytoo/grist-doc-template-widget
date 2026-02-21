@@ -1007,7 +1007,7 @@ function initEditor() {
       verticaltext: {
         name: 'verticaltext',
         iconURL: '',
-        tooltip: currentLang === 'fr' ? 'Texte vertical' : 'Vertical text',
+        tooltip: currentLang === 'fr' ? 'Texte vertical (cliquer pour changer le sens)' : 'Vertical text (click to change direction)',
         exec: function(editor) {
           var selection = editor.selection;
           var current = selection.current();
@@ -1022,15 +1022,25 @@ function initEditor() {
               cell = el;
             }
             if (cell) {
-              // Toggle vertical text
+              // Cycle through: normal -> vertical-rl (bottom to top) -> vertical-lr (top to bottom) -> normal
               var currentMode = cell.style.writingMode;
               if (currentMode === 'vertical-rl') {
+                // Switch to vertical-lr (top to bottom, text upright)
+                cell.style.writingMode = 'vertical-lr';
+                cell.style.textOrientation = 'mixed';
+                cell.style.transform = 'rotate(180deg)';
+                cell.style.whiteSpace = 'nowrap';
+              } else if (currentMode === 'vertical-lr') {
+                // Back to normal
                 cell.style.writingMode = '';
                 cell.style.textOrientation = '';
+                cell.style.transform = '';
                 cell.style.whiteSpace = '';
               } else {
+                // Start with vertical-rl (bottom to top)
                 cell.style.writingMode = 'vertical-rl';
                 cell.style.textOrientation = 'mixed';
+                cell.style.transform = '';
                 cell.style.whiteSpace = 'nowrap';
               }
             } else {
