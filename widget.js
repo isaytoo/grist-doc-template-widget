@@ -13,6 +13,8 @@
 // =============================================================================
 
 var currentLang = 'fr';
+var columnMetadata = {}; // Store column metadata (type, reference info)
+var referenceTables = {}; // Cache for referenced table data
 
 var i18n = {
   fr: {
@@ -353,6 +355,12 @@ async function onTableChange(skipSave) {
     tableColumns = Object.keys(data).filter(function(c) {
       return c !== 'id' && c !== 'manualSort' && !c.startsWith('gristHelper_');
     });
+    
+    // Fetch column metadata to detect Reference columns
+    await loadColumnMetadata(selectedTable);
+    // Resolve reference values
+    await resolveReferences();
+    
     renderVariableChips();
     document.getElementById('var-panel').classList.remove('hidden');
 
@@ -392,6 +400,140 @@ function scheduleAutoSave() {
       }
     }
   }, 2000); // Save 2 seconds after last change
+}
+
+// =============================================================================
+// REFERENCE RESOLUTION
+// =============================================================================
+
+async function loadColumnMetadata(tableName) {
+  columnMetadata = {};
+  try {
+    // Fetch _grist_Tables_column to get column types
+    var colData = await grist.docApi.fetchTable('_grist_Tables_column');
+    var tablesData = await grist.docApi.fetchTable('_grist_Tables');
+    
+    // Find table ID
+    var tableId = null;
+    for (var i = 0; i < tablesData.id.length; i++) {
+      if (tablesData.tableId[i] === tableName) {
+        tableId = tablesData.id[i];
+        break;
+      }
+    }
+    if (!tableId) return;
+    
+    // Get columns for this table
+    for (var i = 0; i < colData.id.length; i++) {
+      if (colData.parentId[i] === tableId) {
+        var colId = colData.colId[i];
+        var colType = colData.type[i];
+        var displayCol = colData.displayCol[i];
+        var visibleCol = colData.visibleCol[i];
+        
+        columnMetadata[colId] = {
+          type: colType,
+          displayCol: displayCol,
+          visibleCol: visibleCol
+        };
+      }
+    }
+    console.log('Column metadata loaded:', columnMetadata);
+  } catch (e) {
+    console.warn('Could not load column metadata:', e);
+  }
+}
+
+async function resolveReferences() {
+  if (!tableData || !columnMetadata) return;
+  
+  for (var colName in columnMetadata) {
+    var meta = columnMetadata[colName];
+    if (!meta.type) continue;
+    
+    // Check if it's a Reference or ReferenceList column
+    var refMatch = meta.type.match(/^Ref:(.+)$/);
+    var refListMatch = meta.type.match(/^RefList:(.+)$/);
+    
+    if (refMatch || refListMatch) {
+      var refTableName = refMatch ? refMatch[1] : refListMatch[1];
+      
+      // Fetch the referenced table if not cached
+      if (!referenceTables[refTableName]) {
+        try {
+          referenceTables[refTableName] = await grist.docApi.fetchTable(refTableName);
+          console.log('Fetched reference table:', refTableName);
+        } catch (e) {
+          console.warn('Could not fetch reference table:', refTableName, e);
+          continue;
+        }
+      }
+      
+      var refTable = referenceTables[refTableName];
+      if (!refTable || !tableData[colName]) continue;
+      
+      // Find the display column (usually the first text column or rowId)
+      var displayColName = findDisplayColumn(refTable, meta.visibleCol);
+      
+      // Replace IDs with display values
+      var resolvedValues = [];
+      for (var i = 0; i < tableData[colName].length; i++) {
+        var refId = tableData[colName][i];
+        if (refListMatch && Array.isArray(refId)) {
+          // ReferenceList: array of IDs
+          var names = [];
+          for (var j = 0; j < refId.length; j++) {
+            var name = lookupRefValue(refTable, refId[j], displayColName);
+            if (name) names.push(name);
+          }
+          resolvedValues.push(names.join(', '));
+        } else if (refId && typeof refId === 'number') {
+          // Single Reference
+          var displayValue = lookupRefValue(refTable, refId, displayColName);
+          resolvedValues.push(displayValue || refId);
+        } else {
+          resolvedValues.push(refId);
+        }
+      }
+      tableData[colName] = resolvedValues;
+      console.log('Resolved references for', colName, ':', resolvedValues.slice(0, 3));
+    }
+  }
+}
+
+function findDisplayColumn(refTable, visibleColId) {
+  // If visibleCol is specified, try to find it
+  if (visibleColId) {
+    // visibleCol is a column ID, we need to find the column name
+    // For now, just use common display columns
+  }
+  
+  // Try common display column names
+  var commonNames = ['Nom_complet', 'Nom complet', 'nom_complet', 'Name', 'name', 'Nom', 'nom', 'Label', 'label', 'Title', 'title'];
+  for (var i = 0; i < commonNames.length; i++) {
+    if (refTable[commonNames[i]]) return commonNames[i];
+  }
+  
+  // Fallback: find first text column (not id, not manualSort)
+  for (var col in refTable) {
+    if (col !== 'id' && col !== 'manualSort' && !col.startsWith('gristHelper_')) {
+      if (refTable[col] && refTable[col].length > 0 && typeof refTable[col][0] === 'string') {
+        return col;
+      }
+    }
+  }
+  
+  return null;
+}
+
+function lookupRefValue(refTable, refId, displayColName) {
+  if (!refTable || !refTable.id || !displayColName) return null;
+  
+  var idx = refTable.id.indexOf(refId);
+  if (idx >= 0 && refTable[displayColName]) {
+    return refTable[displayColName][idx];
+  }
+  return null;
 }
 
 // =============================================================================
