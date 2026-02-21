@@ -603,7 +603,7 @@ function getUniqueValuesForColumn(colName) {
   var unique = [];
   var seen = {};
   
-  // Add resolved values from tableData
+  // Add resolved values from tableData (current table rows)
   for (var i = 0; i < values.length; i++) {
     var val = values[i];
     if (val !== null && val !== undefined && val !== '' && !seen[val]) {
@@ -612,19 +612,23 @@ function getUniqueValuesForColumn(colName) {
     }
   }
   
-  // For reference columns, also add the reference display values (e.g., "DUMZ 60")
+  // For reference columns, add ALL values from the reference table
   var meta = columnMetadata[colName];
   if (meta && meta.type) {
     var refMatch = meta.type.match(/^Ref:(.+)$/);
     if (refMatch) {
       var refTableName = refMatch[1];
-      if (referenceDisplayValues[refTableName]) {
-        var refDisplayMap = referenceDisplayValues[refTableName];
-        for (var refId in refDisplayMap) {
-          var refVal = refDisplayMap[refId];
-          if (refVal && !seen[refVal]) {
-            seen[refVal] = true;
-            unique.push(refVal);
+      var refTable = referenceTables[refTableName];
+      if (refTable) {
+        // Add all values from visibleCol (the display column configured in Grist)
+        var visibleColName = meta.visibleCol || findDisplayColumn(refTable, null);
+        if (visibleColName && refTable[visibleColName]) {
+          for (var j = 0; j < refTable[visibleColName].length; j++) {
+            var refVal = refTable[visibleColName][j];
+            if (refVal && !seen[refVal]) {
+              seen[refVal] = true;
+              unique.push(refVal);
+            }
           }
         }
       }
