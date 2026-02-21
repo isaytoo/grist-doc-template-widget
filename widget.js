@@ -466,16 +466,21 @@ async function resolveReferences() {
           console.log('Fetched reference table:', refTableName);
           
           // Build display values map for this reference table
-          // This maps ID -> display value (e.g., 60 -> "DUMZ 60")
+          // This maps ID -> reference label (e.g., 60 -> "DUMZ 60")
+          // We need to find the "rowId" or identifier column, not the display column
           referenceDisplayValues[refTableName] = {};
           var refData = referenceTables[refTableName];
-          var refDisplayCol = findDisplayColumn(refData, null);
-          if (refData.id && refDisplayCol && refData[refDisplayCol]) {
+          
+          // Find the identifier column - usually named like the table or contains rowId-like values
+          var identifierCol = findIdentifierColumn(refData, refTableName);
+          if (refData.id && identifierCol && refData[identifierCol]) {
             for (var k = 0; k < refData.id.length; k++) {
-              referenceDisplayValues[refTableName][refData.id[k]] = refData[refDisplayCol][k];
+              referenceDisplayValues[refTableName][refData.id[k]] = refData[identifierCol][k];
             }
+            console.log('Built reference display map for', refTableName, 'using column', identifierCol, ':', Object.keys(referenceDisplayValues[refTableName]).length, 'entries');
+          } else {
+            console.log('Could not find identifier column for', refTableName);
           }
-          console.log('Built reference display map for', refTableName, ':', Object.keys(referenceDisplayValues[refTableName]).length, 'entries');
         } catch (e) {
           console.warn('Could not fetch reference table:', refTableName, e);
           continue;
@@ -549,6 +554,44 @@ function lookupRefValue(refTable, refId, displayColName) {
   if (idx >= 0 && refTable[displayColName]) {
     return refTable[displayColName][idx];
   }
+  return null;
+}
+
+function findIdentifierColumn(refTable, tableName) {
+  // Look for a column that contains the reference identifier (e.g., "DUMZ 60")
+  // This is typically the "rowId" column or a column named after the table
+  
+  // First, try to find a column that starts with the table name or similar pattern
+  var tablePrefix = tableName.replace(/S$/, '').toUpperCase(); // PARAMETRES -> PARAMETRE
+  
+  for (var col in refTable) {
+    if (col === 'id' || col === 'manualSort' || col.startsWith('gristHelper_')) continue;
+    
+    // Check if column values contain the table-like prefix
+    if (refTable[col] && refTable[col].length > 0) {
+      var sampleVal = String(refTable[col][0] || '');
+      // Check if values look like identifiers (e.g., "DUMZ 60", "CUMZ", etc.)
+      if (sampleVal.match(/^[A-Z]+\s*\d*$/i) || sampleVal.match(/^[A-Z]{2,}/i)) {
+        return col;
+      }
+    }
+  }
+  
+  // Fallback: try common identifier column names
+  var idNames = ['Code', 'code', 'ID', 'Identifiant', 'identifiant', 'Ref', 'ref', 'Reference', 'reference'];
+  for (var i = 0; i < idNames.length; i++) {
+    if (refTable[idNames[i]]) return idNames[i];
+  }
+  
+  // Last fallback: first text column
+  for (var col in refTable) {
+    if (col !== 'id' && col !== 'manualSort' && !col.startsWith('gristHelper_')) {
+      if (refTable[col] && refTable[col].length > 0 && typeof refTable[col][0] === 'string') {
+        return col;
+      }
+    }
+  }
+  
   return null;
 }
 
