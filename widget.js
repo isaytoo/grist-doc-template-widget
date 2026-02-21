@@ -574,41 +574,36 @@ function lookupRefValue(refTable, refId, displayColName) {
 
 function findIdentifierColumn(refTable, tableName) {
   // Look for a column that contains the reference identifier (e.g., "DUMZ 60")
-  // This is typically the "rowId" column or a column named after the table
+  // Priority: column with "CODE XX" pattern values > column named like table > common names
   
-  // First, try common identifier column names
-  var idNames = ['Code', 'code', 'ID', 'Identifiant', 'identifiant', 'Ref', 'ref', 'Reference', 'reference', 'Nom', 'nom', 'Name', 'name'];
-  for (var i = 0; i < idNames.length; i++) {
-    if (refTable[idNames[i]]) {
-      // Check if values look like identifiers with letters and numbers (e.g., "DUMZ 60")
-      var vals = refTable[idNames[i]];
-      if (vals && vals.length > 0) {
-        var sampleVal = String(vals[0] || '');
-        if (sampleVal.match(/^[A-Z]+\s*\d+$/i)) {
-          return idNames[i];
-        }
-      }
-    }
-  }
-  
-  // Second pass: look for any column with values like "DUMZ 60" pattern
+  // First pass: look for any column with values like "DUMZ 60" pattern (letters + space + numbers)
   for (var col in refTable) {
     if (col === 'id' || col === 'manualSort' || col.startsWith('gristHelper_')) continue;
     
     if (refTable[col] && refTable[col].length > 0) {
       var sampleVal = String(refTable[col][0] || '');
       // Check if values look like identifiers with letters and numbers (e.g., "DUMZ 60", "OCSR 12")
-      if (sampleVal.match(/^[A-Z]+\s*\d+$/i)) {
+      if (sampleVal.match(/^[A-Z]+\s+\d+$/i)) {
         return col;
       }
     }
   }
   
-  // Third pass: look for column named like the table
+  // Second pass: look for column named like the table (e.g., DUMZ in PARAMETRES if column exists)
   var tableBaseName = tableName.replace(/S$/i, '').toUpperCase();
   for (var col in refTable) {
-    if (col.toUpperCase().indexOf(tableBaseName) !== -1) {
-      return col;
+    if (col.toUpperCase() === tableBaseName || col.toUpperCase().indexOf(tableBaseName) === 0) {
+      if (refTable[col] && refTable[col].length > 0 && typeof refTable[col][0] === 'string') {
+        return col;
+      }
+    }
+  }
+  
+  // Third pass: try common identifier column names
+  var idNames = ['Code', 'code', 'ID', 'Identifiant', 'identifiant', 'Ref', 'ref', 'Reference', 'reference'];
+  for (var i = 0; i < idNames.length; i++) {
+    if (refTable[idNames[i]]) {
+      return idNames[i];
     }
   }
   
