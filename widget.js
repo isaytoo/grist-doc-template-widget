@@ -465,36 +465,20 @@ async function resolveReferences() {
           referenceTables[refTableName] = await grist.docApi.fetchTable(refTableName);
           console.log('Fetched reference table:', refTableName);
           
-          // Build display values map for this reference table
-          // This maps ID -> reference label (e.g., 60 -> "DUMZ 60")
-          // We need to find the "rowId" or identifier column, not the display column
+          // Build display values map using visibleCol from the reference column metadata
+          // This is the column Grist uses to display reference values (e.g., "DUMZ 60")
           referenceDisplayValues[refTableName] = {};
           var refData = referenceTables[refTableName];
           
-          // Log all columns for debugging
-          var allCols = Object.keys(refData).filter(function(c) { 
-            return c !== 'id' && c !== 'manualSort' && !c.startsWith('gristHelper_'); 
-          });
-          console.log('Reference table', refTableName, 'columns:', allCols.join(', '));
-          
-          // Sample first row values
-          if (refData.id && refData.id.length > 0) {
-            var sampleRow = {};
-            for (var c = 0; c < allCols.length; c++) {
-              sampleRow[allCols[c]] = refData[allCols[c]] ? refData[allCols[c]][0] : null;
-            }
-            console.log('Reference table', refTableName, 'sample row:', JSON.stringify(sampleRow));
-          }
-          
-          // Find the identifier column - usually named like the table or contains rowId-like values
-          var identifierCol = findIdentifierColumn(refData, refTableName);
-          if (refData.id && identifierCol && refData[identifierCol]) {
+          // Use visibleCol from metadata if available, otherwise find display column
+          var visibleColName = meta.visibleCol || findDisplayColumn(refData, null);
+          if (refData.id && visibleColName && refData[visibleColName]) {
             for (var k = 0; k < refData.id.length; k++) {
-              referenceDisplayValues[refTableName][refData.id[k]] = refData[identifierCol][k];
+              referenceDisplayValues[refTableName][refData.id[k]] = refData[visibleColName][k];
             }
-            console.log('Built reference display map for', refTableName, 'using column', identifierCol, ':', Object.keys(referenceDisplayValues[refTableName]).length, 'entries');
+            console.log('Built reference display map for', refTableName, 'using visibleCol', visibleColName, ':', Object.keys(referenceDisplayValues[refTableName]).length, 'entries');
           } else {
-            console.log('Could not find identifier column for', refTableName);
+            console.log('Could not build reference display map for', refTableName, '- visibleCol:', visibleColName);
           }
         } catch (e) {
           console.warn('Could not fetch reference table:', refTableName, e);
@@ -572,52 +556,6 @@ function lookupRefValue(refTable, refId, displayColName) {
   return null;
 }
 
-function findIdentifierColumn(refTable, tableName) {
-  // Look for a column that contains the reference identifier (e.g., "DUMZ 60")
-  // Priority: column with "CODE XX" pattern values > column named like table > common names
-  
-  // First pass: look for any column with values like "DUMZ 60" pattern (letters + space + numbers)
-  for (var col in refTable) {
-    if (col === 'id' || col === 'manualSort' || col.startsWith('gristHelper_')) continue;
-    
-    if (refTable[col] && refTable[col].length > 0) {
-      var sampleVal = String(refTable[col][0] || '');
-      // Check if values look like identifiers with letters and numbers (e.g., "DUMZ 60", "OCSR 12")
-      if (sampleVal.match(/^[A-Z]+\s+\d+$/i)) {
-        return col;
-      }
-    }
-  }
-  
-  // Second pass: look for column named like the table (e.g., DUMZ in PARAMETRES if column exists)
-  var tableBaseName = tableName.replace(/S$/i, '').toUpperCase();
-  for (var col in refTable) {
-    if (col.toUpperCase() === tableBaseName || col.toUpperCase().indexOf(tableBaseName) === 0) {
-      if (refTable[col] && refTable[col].length > 0 && typeof refTable[col][0] === 'string') {
-        return col;
-      }
-    }
-  }
-  
-  // Third pass: try common identifier column names
-  var idNames = ['Code', 'code', 'ID', 'Identifiant', 'identifiant', 'Ref', 'ref', 'Reference', 'reference'];
-  for (var i = 0; i < idNames.length; i++) {
-    if (refTable[idNames[i]]) {
-      return idNames[i];
-    }
-  }
-  
-  // Last fallback: first text column
-  for (var col in refTable) {
-    if (col !== 'id' && col !== 'manualSort' && !col.startsWith('gristHelper_')) {
-      if (refTable[col] && refTable[col].length > 0 && typeof refTable[col][0] === 'string') {
-        return col;
-      }
-    }
-  }
-  
-  return null;
-}
 
 // =============================================================================
 // VARIABLE CHIPS
