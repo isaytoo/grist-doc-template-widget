@@ -208,6 +208,7 @@ var selectedTable = '';
 var tableColumns = [];
 var tableData = null;       // { col: [...], ... } - ALL data from table
 var filteredRecords = [];   // Records filtered by "Select By" (from grist.onRecords)
+var availableViews = [];    // Views available for the selected table
 var currentRecordIndex = 0;
 var templateHtml = '';
 var editorInstance = null;
@@ -369,6 +370,8 @@ async function onTableChange(skipSave) {
     await loadColumnMetadata(selectedTable);
     // Resolve reference values
     await resolveReferences();
+    // Load available views for this table
+    await loadViewsForTable(selectedTable);
     
     renderVariableChips();
     document.getElementById('var-panel').classList.remove('hidden');
@@ -409,6 +412,64 @@ function scheduleAutoSave() {
       }
     }
   }, 2000); // Save 2 seconds after last change
+}
+
+// =============================================================================
+// LOAD VIEWS FOR TABLE
+// =============================================================================
+
+async function loadViewsForTable(tableName) {
+  availableViews = [];
+  try {
+    // Fetch views and view sections from Grist system tables
+    var viewsData = await grist.docApi.fetchTable('_grist_Views');
+    var sectionsData = await grist.docApi.fetchTable('_grist_Views_section');
+    var tablesData = await grist.docApi.fetchTable('_grist_Tables');
+    
+    // Find table ID for the selected table
+    var tableId = null;
+    for (var i = 0; i < tablesData.id.length; i++) {
+      if (tablesData.tableId[i] === tableName) {
+        tableId = tablesData.id[i];
+        break;
+      }
+    }
+    if (!tableId) return;
+    
+    // Find all view sections that use this table
+    var viewIdsWithTable = new Set();
+    var sectionFilters = {}; // viewId -> filters
+    
+    for (var i = 0; i < sectionsData.id.length; i++) {
+      if (sectionsData.tableRef[i] === tableId) {
+        var viewId = sectionsData.parentId[i];
+        viewIdsWithTable.add(viewId);
+        
+        // Store filters if any
+        var filters = sectionsData.filters[i];
+        if (filters && filters !== '[]') {
+          sectionFilters[viewId] = filters;
+        }
+      }
+    }
+    
+    // Build list of views with their names and filters
+    for (var i = 0; i < viewsData.id.length; i++) {
+      var viewId = viewsData.id[i];
+      if (viewIdsWithTable.has(viewId)) {
+        var viewName = viewsData.name[i];
+        availableViews.push({
+          id: viewId,
+          name: viewName,
+          filters: sectionFilters[viewId] || null
+        });
+      }
+    }
+    
+    console.log('Available views for table', tableName, ':', availableViews);
+  } catch (error) {
+    console.error('Error loading views:', error);
+  }
 }
 
 // =============================================================================
@@ -734,20 +795,41 @@ function insertTableWithLoop() {
     colOptions += '<option value="' + tableColumns[i] + '">' + tableColumns[i] + '</option>';
   }
   
+  // Build view selector options
+  var viewOptions = '<option value="">' + (currentLang === 'fr' ? '-- Choisir une vue --' : '-- Choose a view --') + '</option>';
+  for (var v = 0; v < availableViews.length; v++) {
+    var viewName = availableViews[v].name;
+    var viewId = availableViews[v].id;
+    var hasFilters = availableViews[v].filters ? ' 🔍' : '';
+    viewOptions += '<option value="' + viewId + '">' + viewName + hasFilters + '</option>';
+  }
+  
   var viewLinkedHelp = currentLang === 'fr' 
-    ? '💡 Pour filtrer par une vue existante, configurez "Sélectionner par" dans le panneau Grist (à droite) puis choisissez "Lié à la vue".'
-    : '💡 To filter by an existing view, configure "Select By" in the Grist panel (right side) then choose "Linked to view".';
+    ? '💡 Utilise les lignes visibles via "Sélectionner par" (panneau Grist à droite)'
+    : '💡 Uses visible rows via "Select By" (Grist panel on the right)';
+  
+  var viewSelectHelp = currentLang === 'fr'
+    ? '💡 Sélectionnez une vue existante pour utiliser ses filtres'
+    : '💡 Select an existing view to use its filters';
   
   var formHtml = '<div style="text-align:left;">' +
     '<div style="margin-bottom:15px;">' +
     '<label style="display:block;margin-bottom:8px;font-weight:600;">' + (currentLang === 'fr' ? 'Type de tableau :' : 'Table type:') + '</label>' +
     '<label style="display:block;margin-bottom:5px;cursor:pointer;">' +
     '<input type="radio" name="loop-type" value="view" checked style="margin-right:8px;">' +
-    (currentLang === 'fr' ? 'Lié à la vue (affiche toutes les lignes visibles)' : 'Linked to view (shows all visible rows)') + '</label>' +
+    (currentLang === 'fr' ? 'Lié à la vue courante' : 'Linked to current view') + '</label>' +
     '<p style="margin:0 0 10px 24px;font-size:0.85em;color:#6b7280;">' + viewLinkedHelp + '</p>' +
     '<label style="display:block;margin-bottom:5px;cursor:pointer;">' +
+    '<input type="radio" name="loop-type" value="viewselect" style="margin-right:8px;">' +
+    (currentLang === 'fr' ? 'Lié à une vue filtrée' : 'Linked to a filtered view') + '</label>' +
+    '<p style="margin:0 0 10px 24px;font-size:0.85em;color:#6b7280;">' + viewSelectHelp + '</p>' +
+    '<label style="display:block;margin-bottom:5px;cursor:pointer;">' +
     '<input type="radio" name="loop-type" value="filter" style="margin-right:8px;">' +
-    (currentLang === 'fr' ? 'Avec filtre (filtrer par colonne/valeur)' : 'With filter (filter by column/value)') + '</label>' +
+    (currentLang === 'fr' ? 'Avec filtre manuel' : 'With manual filter') + '</label>' +
+    '</div>' +
+    '<div id="view-select-options" style="display:none;border:1px solid #e5e7eb;padding:10px;border-radius:6px;margin-bottom:10px;background:#f0fdf4;">' +
+    '<label style="display:block;margin-bottom:5px;font-weight:600;">' + (currentLang === 'fr' ? 'Vue à utiliser :' : 'View to use:') + '</label>' +
+    '<select id="loop-view-select" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">' + viewOptions + '</select>' +
     '</div>' +
     '<div id="filter-options" style="display:none;border:1px solid #e5e7eb;padding:10px;border-radius:6px;margin-bottom:10px;background:#f9fafb;">' +
     '<div style="margin-bottom:10px;">' +
@@ -783,8 +865,12 @@ function insertTableWithLoop() {
     radios.forEach(function(radio) {
       radio.addEventListener('change', function() {
         var filterOptions = document.getElementById('filter-options');
+        var viewSelectOptions = document.getElementById('view-select-options');
         if (filterOptions) {
           filterOptions.style.display = this.value === 'filter' ? 'block' : 'none';
+        }
+        if (viewSelectOptions) {
+          viewSelectOptions.style.display = this.value === 'viewselect' ? 'block' : 'none';
         }
       });
     });
@@ -795,17 +881,21 @@ function insertTableWithLoop() {
     
     // Check which type is selected
     var loopType = document.querySelector('input[name="loop-type"]:checked');
-    var isViewLinked = loopType && loopType.value === 'view';
+    var loopTypeValue = loopType ? loopType.value : 'view';
     
     var filterCol = '';
     var filterVal = '';
+    var selectedViewId = '';
     
-    if (!isViewLinked) {
+    if (loopTypeValue === 'filter') {
       filterCol = document.getElementById('loop-filter-col').value;
       // Use dropdown value if selected, otherwise use text input
       var filterValSelect = document.getElementById('loop-filter-val-select');
       var filterValInput = document.getElementById('loop-filter-val');
       filterVal = (filterValSelect && filterValSelect.value) || (filterValInput && filterValInput.value) || (currentLang === 'fr' ? 'Valeur' : 'Value');
+    } else if (loopTypeValue === 'viewselect') {
+      var viewSelect = document.getElementById('loop-view-select');
+      selectedViewId = viewSelect ? viewSelect.value : '';
     }
     
     // Get selected columns
@@ -824,12 +914,22 @@ function insertTableWithLoop() {
     }
     
     var tableHtml;
-    if (isViewLinked) {
-      // View-linked table: uses <!--LOOP:*--> to show all rows from the view
+    if (loopTypeValue === 'view') {
+      // View-linked table: uses <!--LOOP:*--> to show all rows from the current view
       tableHtml = '<table style="border-collapse:collapse;width:100%;margin:10px 0;">' +
         '<thead><tr>' + headerCells + '</tr></thead>' +
         '<tbody>' +
         '<!--LOOP:*-->' +
+        '<tr>' + dataCells + '</tr>' +
+        '<!--/LOOP-->' +
+        '</tbody>' +
+        '</table>';
+    } else if (loopTypeValue === 'viewselect' && selectedViewId) {
+      // View-select table: uses <!--LOOP:VIEW:viewId--> to show rows from selected view
+      tableHtml = '<table style="border-collapse:collapse;width:100%;margin:10px 0;">' +
+        '<thead><tr>' + headerCells + '</tr></thead>' +
+        '<tbody>' +
+        '<!--LOOP:VIEW:' + selectedViewId + '-->' +
         '<tr>' + dataCells + '</tr>' +
         '<!--/LOOP-->' +
         '</tbody>' +
@@ -1641,11 +1741,16 @@ function processLoops(html, forPdf) {
   
   // Process HTML comment-based loops (for tables): <!--LOOP:Column=Value-->...<!--/LOOP-->
   // Also supports <!--LOOP:*--> for view-linked tables (all rows)
-  var commentLoopRegex = /<!--LOOP:(\*|[^=]+=[^-]+)-->([\s\S]*?)<!--\/LOOP-->/gi;
+  // Also supports <!--LOOP:VIEW:viewId--> for specific view filters
+  var commentLoopRegex = /<!--LOOP:(\*|VIEW:\d+|[^=]+=[^-]+)-->([\s\S]*?)<!--\/LOOP-->/gi;
   resolved = resolved.replace(commentLoopRegex, function(match, loopSpec, loopContent) {
     if (loopSpec === '*') {
-      // View-linked: show all rows
+      // View-linked: show all rows from current view
       return executeLoopAllRows(loopContent, forPdf);
+    } else if (loopSpec.startsWith('VIEW:')) {
+      // View-select: show rows filtered by specific view
+      var viewId = loopSpec.substring(5);
+      return executeLoopFromView(viewId, loopContent, forPdf);
     } else {
       // Filtered: parse Column=Value
       var parts = loopSpec.split('=');
@@ -1691,6 +1796,133 @@ function processLoops(html, forPdf) {
   });
   
   return resolved;
+}
+
+function executeLoopFromView(viewId, loopContent, forPdf) {
+  // Execute loop using filters from a specific view
+  if (!tableData || !tableColumns.length) return '';
+  
+  // Find the view in availableViews
+  var viewInfo = null;
+  for (var i = 0; i < availableViews.length; i++) {
+    if (String(availableViews[i].id) === String(viewId)) {
+      viewInfo = availableViews[i];
+      break;
+    }
+  }
+  
+  if (!viewInfo) {
+    return '<span style="color:red;">[' + (currentLang === 'fr' ? 'Vue non trouvée: ' : 'View not found: ') + viewId + ']</span>';
+  }
+  
+  // Parse filters from the view
+  var filters = [];
+  if (viewInfo.filters) {
+    try {
+      // Grist stores filters as JSON string: [{"colRef":colId,"filter":"..."}]
+      var parsedFilters = JSON.parse(viewInfo.filters);
+      for (var f = 0; f < parsedFilters.length; f++) {
+        var filterDef = parsedFilters[f];
+        var colRef = filterDef.colRef;
+        var filterJson = filterDef.filter;
+        
+        // Resolve column name from colRef
+        var colName = columnIdToName[colRef];
+        if (colName && filterJson) {
+          // Parse filter values: {"included":["val1","val2"]}
+          var filterData = JSON.parse(filterJson);
+          if (filterData.included && filterData.included.length > 0) {
+            filters.push({
+              column: colName,
+              values: filterData.included
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Error parsing view filters:', e);
+    }
+  }
+  
+  console.log('Executing loop from view', viewInfo.name, 'with filters:', filters);
+  
+  // Get the number of rows
+  var firstCol = tableColumns[0];
+  var rowCount = tableData[firstCol] ? tableData[firstCol].length : 0;
+  
+  if (rowCount === 0) {
+    return '<span style="color:#f59e0b;font-style:italic;">[' + (currentLang === 'fr' ? 'Aucune ligne' : 'No rows') + ']</span>';
+  }
+  
+  // Generate output for each row that matches the filters
+  var output = '';
+  var matchCount = 0;
+  
+  for (var j = 0; j < rowCount; j++) {
+    var rowRecord = getRecordAt(j);
+    
+    // Check if row matches all filters
+    var matches = true;
+    for (var fi = 0; fi < filters.length; fi++) {
+      var filter = filters[fi];
+      var rowVal = rowRecord[filter.column];
+      var rowValStr = String(rowVal);
+      
+      // Check if row value is in the filter's included values
+      var found = false;
+      for (var vi = 0; vi < filter.values.length; vi++) {
+        if (String(filter.values[vi]) === rowValStr) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        matches = false;
+        break;
+      }
+    }
+    
+    if (!matches) continue;
+    matchCount++;
+    
+    // Resolve variables in loopContent for this row
+    var rowHtml = loopContent;
+    for (var col in rowRecord) {
+      var val = rowRecord[col];
+      var display = formatValueForDisplay(val);
+      
+      // Replace styled spans
+      var styledRegex = new RegExp('<span[^>]*>\\{\\{' + escapeRegex(col) + '\\}\\}</span>', 'g');
+      if (display) {
+        if (forPdf) {
+          rowHtml = rowHtml.replace(styledRegex, '<strong>' + sanitize(display) + '</strong>');
+        } else {
+          rowHtml = rowHtml.replace(styledRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
+        }
+      } else {
+        rowHtml = rowHtml.replace(styledRegex, '');
+      }
+      
+      // Replace plain text variables
+      var plainRegex = new RegExp('\\{\\{' + escapeRegex(col) + '\\}\\}', 'g');
+      if (display) {
+        if (forPdf) {
+          rowHtml = rowHtml.replace(plainRegex, '<strong>' + sanitize(display) + '</strong>');
+        } else {
+          rowHtml = rowHtml.replace(plainRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
+        }
+      } else {
+        rowHtml = rowHtml.replace(plainRegex, '');
+      }
+    }
+    output += rowHtml;
+  }
+  
+  if (matchCount === 0) {
+    return '<span style="color:#f59e0b;font-style:italic;">[' + (currentLang === 'fr' ? 'Aucune ligne correspondante dans la vue ' : 'No matching rows in view ') + viewInfo.name + ']</span>';
+  }
+  
+  return output;
 }
 
 function executeLoopAllRows(loopContent, forPdf) {
