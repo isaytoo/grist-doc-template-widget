@@ -1810,6 +1810,15 @@ function formatValueForDisplay(value) {
     }
   }
   
+  // Check if it's an ISO date format (YYYY-MM-DD) and convert to French format (DD/MM/YYYY)
+  var isoDateMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoDateMatch) {
+    var year = isoDateMatch[1];
+    var month = isoDateMatch[2];
+    var day = isoDateMatch[3];
+    return day + '/' + month + '/' + year;
+  }
+  
   return str;
 }
 
