@@ -2262,6 +2262,8 @@ async function executeLoopLinkedTableAsync(linkedTableName, refColumn, loopConte
   // Execute loop for rows from a linked table, filtered by reference to current record
   // Example: Facture_details where Facture_Ref = currentRecordId
   
+  console.log('executeLoopLinkedTableAsync called:', { linkedTableName, refColumn, currentRecordId, loopContent });
+  
   var output = '';
   
   try {
@@ -2269,37 +2271,49 @@ async function executeLoopLinkedTableAsync(linkedTableName, refColumn, loopConte
     var linkedData;
     if (linkedTableCache[linkedTableName]) {
       linkedData = linkedTableCache[linkedTableName];
+      console.log('Using cached data for', linkedTableName);
     } else {
+      console.log('Fetching table:', linkedTableName);
       linkedData = await grist.docApi.fetchTable(linkedTableName);
       linkedTableCache[linkedTableName] = linkedData;
+      console.log('Fetched data:', linkedData);
     }
     
     if (!linkedData || !linkedData.id) {
+      console.error('Table not found or no id column:', linkedTableName);
       return '<span style="color:#ef4444;font-style:italic;">[' + (currentLang === 'fr' ? 'Table non trouvée: ' : 'Table not found: ') + linkedTableName + ']</span>';
     }
     
     // Check if refColumn exists
     if (!linkedData[refColumn]) {
+      console.error('Ref column not found:', refColumn, 'Available columns:', Object.keys(linkedData));
       return '<span style="color:#ef4444;font-style:italic;">[' + (currentLang === 'fr' ? 'Colonne de référence non trouvée: ' : 'Reference column not found: ') + refColumn + ']</span>';
     }
     
     var rowCount = linkedData.id.length;
     var matchCount = 0;
     
+    console.log('Linked table has', rowCount, 'rows, looking for ref =', currentRecordId);
+    
     // Get columns from linked table
     var linkedColumns = Object.keys(linkedData).filter(function(k) {
       return k !== 'id' && k !== 'manualSort' && !k.startsWith('gristHelper_');
     });
+    console.log('Linked columns:', linkedColumns);
     
     for (var i = 0; i < rowCount; i++) {
       // Check if this row references the current record
       var refValue = linkedData[refColumn][i];
+      
+      console.log('Row', i, 'refValue:', refValue, 'type:', typeof refValue);
       
       // Handle both direct ID and reference object
       var refId = refValue;
       if (typeof refValue === 'object' && refValue !== null) {
         refId = refValue.id || refValue;
       }
+      
+      console.log('Comparing refId', refId, '(type:', typeof refId, ') with currentRecordId', currentRecordId, '(type:', typeof currentRecordId, ')');
       
       if (refId !== currentRecordId) continue;
       
