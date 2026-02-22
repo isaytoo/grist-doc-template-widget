@@ -727,12 +727,17 @@ function insertTableWithLoop() {
     colOptions += '<option value="' + tableColumns[i] + '">' + tableColumns[i] + '</option>';
   }
   
+  var viewLinkedHelp = currentLang === 'fr' 
+    ? '💡 Pour filtrer par une vue existante, configurez "Sélectionner par" dans le panneau Grist (à droite) puis choisissez "Lié à la vue".'
+    : '💡 To filter by an existing view, configure "Select By" in the Grist panel (right side) then choose "Linked to view".';
+  
   var formHtml = '<div style="text-align:left;">' +
     '<div style="margin-bottom:15px;">' +
     '<label style="display:block;margin-bottom:8px;font-weight:600;">' + (currentLang === 'fr' ? 'Type de tableau :' : 'Table type:') + '</label>' +
     '<label style="display:block;margin-bottom:5px;cursor:pointer;">' +
     '<input type="radio" name="loop-type" value="view" checked style="margin-right:8px;">' +
     (currentLang === 'fr' ? 'Lié à la vue (affiche toutes les lignes visibles)' : 'Linked to view (shows all visible rows)') + '</label>' +
+    '<p style="margin:0 0 10px 24px;font-size:0.85em;color:#6b7280;">' + viewLinkedHelp + '</p>' +
     '<label style="display:block;margin-bottom:5px;cursor:pointer;">' +
     '<input type="radio" name="loop-type" value="filter" style="margin-right:8px;">' +
     (currentLang === 'fr' ? 'Avec filtre (filtrer par colonne/valeur)' : 'With filter (filter by column/value)') + '</label>' +
