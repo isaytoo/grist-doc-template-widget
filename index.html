@@ -250,28 +250,25 @@
 
     /* ========== EDITOR AREA (Jodit) ========== */
     .editor-wrapper {
-      background: white;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
+      background: transparent;
+      border: none;
+      border-radius: 0;
       overflow: visible;
     }
     .jodit-container { 
       border: none !important;
-      display: flex !important;
-      flex-direction: column !important;
+      background: transparent !important;
     }
     .jodit-toolbar__box {
-      position: sticky !important;
-      top: 0 !important;
-      z-index: 90 !important;
       background: white !important;
-      border-bottom: 1px solid #e2e8f0 !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 8px !important;
+      margin-bottom: 16px !important;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
     }
     .jodit-workplace {
-      max-height: calc(100vh - 320px) !important;
-      overflow-y: auto !important;
+      min-height: 400px !important;
     }
-    .jodit-workplace { min-height: 400px !important; }
     .jodit-wysiwyg { font-family: 'Times New Roman', Times, serif; font-size: 14px; line-height: 1.6; }
     .jodit-wysiwyg .page-break-marker {
       border: none !important;
