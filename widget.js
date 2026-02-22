@@ -1157,7 +1157,7 @@ function insertTableWithLoop() {
     }
     
     editorInstance.selection.insertHTML(tableHtml);
-    showToast(t('tableLoopInserted'), 'info');
+    showToast(currentLang === 'fr' ? 'Tableau avec boucle inséré' : 'Table with loop inserted', 'info');
   });
 }
 
@@ -2385,9 +2385,15 @@ function executeLoopLinkedTable(linkedTableName, refColumn, loopContent, forPdf)
   
   // Execute async and update DOM when ready
   executeLoopLinkedTableAsync(linkedTableName, refColumn, loopContent, forPdf, currentRecordId).then(function(result) {
+    console.log('Async result ready, looking for placeholder:', placeholderId);
+    console.log('Result HTML:', result);
     var placeholder = document.getElementById(placeholderId);
+    console.log('Placeholder found:', placeholder);
     if (placeholder) {
       placeholder.outerHTML = result;
+      console.log('Placeholder replaced successfully');
+    } else {
+      console.warn('Placeholder not found in DOM');
     }
   });
   
