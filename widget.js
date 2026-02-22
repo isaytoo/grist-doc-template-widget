@@ -426,13 +426,13 @@ async function loadViewsForTable(tableName) {
     var sectionsData = await grist.docApi.fetchTable('_grist_Views_section');
     var tablesData = await grist.docApi.fetchTable('_grist_Tables');
     
-    // Debug: log all fields in sectionsData to find where filters are stored
-    console.log('_grist_Views_section fields:', Object.keys(sectionsData));
-    if (sectionsData.id && sectionsData.id.length > 0) {
-      console.log('Sample section data (first entry):');
-      for (var key in sectionsData) {
-        console.log('  ' + key + ':', sectionsData[key][0]);
-      }
+    // Try to fetch _grist_Filters table (where Grist stores saved filters)
+    var filtersData = null;
+    try {
+      filtersData = await grist.docApi.fetchTable('_grist_Filters');
+      console.log('_grist_Filters data:', filtersData);
+    } catch (e) {
+      console.log('_grist_Filters not available:', e.message);
     }
     
     // Find table ID for the selected table
