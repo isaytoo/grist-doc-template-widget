@@ -1627,10 +1627,8 @@ function initEditor() {
     var joditContainer = document.querySelector('.jodit-container');
     var toolbar = joditContainer ? joditContainer.querySelector('.jodit-toolbar__box') : null;
     var toolbarContainer = document.getElementById('jodit-toolbar-container');
-    console.log('Moving toolbar:', toolbar, 'to container:', toolbarContainer);
     if (toolbar && toolbarContainer) {
       toolbarContainer.appendChild(toolbar);
-      console.log('Toolbar moved successfully');
     }
   }, 200);
 }
