@@ -972,12 +972,21 @@ function editTableLoop(tableElement) {
   
   // Search for loop comment in tbody
   var isViewLinked = false;
+  var isViewSelect = false;
+  var currentViewId = '';
   for (var i = 0; i < tbody.childNodes.length; i++) {
     var node = tbody.childNodes[i];
     if (node.nodeType === 8) { // Comment node
       if (node.textContent === 'LOOP:*') {
         loopComment = node;
         isViewLinked = true;
+        break;
+      }
+      var viewMatch = node.textContent.match(/^LOOP:VIEW:(\d+)$/);
+      if (viewMatch) {
+        loopComment = node;
+        isViewSelect = true;
+        currentViewId = viewMatch[1];
         break;
       }
       var match = node.textContent.match(/^LOOP:([^=]+)=(.*)$/);
@@ -1002,6 +1011,16 @@ function editTableLoop(tableElement) {
     colOptions += '<option value="' + tableColumns[i] + '" ' + selected + '>' + tableColumns[i] + '</option>';
   }
   
+  // Build view selector options
+  var viewOptions = '<option value="">' + (currentLang === 'fr' ? '-- Choisir une vue --' : '-- Choose a view --') + '</option>';
+  for (var v = 0; v < availableViews.length; v++) {
+    var viewName = availableViews[v].name;
+    var viewId = availableViews[v].id;
+    var hasFilters = availableViews[v].filters ? ' 🔍' : '';
+    var selectedView = String(viewId) === currentViewId ? 'selected' : '';
+    viewOptions += '<option value="' + viewId + '" ' + selectedView + '>' + viewName + hasFilters + '</option>';
+  }
+  
   // Build value options for current column
   var uniqueVals = getUniqueValuesForColumn(currentFilterCol || tableColumns[0]);
   var valOptions = '<option value="">' + (currentLang === 'fr' ? '-- Choisir une valeur --' : '-- Choose a value --') + '</option>';
@@ -1010,17 +1029,27 @@ function editTableLoop(tableElement) {
     valOptions += '<option value="' + uniqueVals[j] + '" ' + selVal + '>' + uniqueVals[j] + '</option>';
   }
   
+  // Determine which radio should be checked
+  var isFilterChecked = !isViewLinked && !isViewSelect;
+  
   var formHtml = '<div style="text-align:left;">' +
     '<div style="margin-bottom:15px;">' +
     '<label style="display:block;margin-bottom:8px;font-weight:600;">' + (currentLang === 'fr' ? 'Type de tableau :' : 'Table type:') + '</label>' +
     '<label style="display:block;margin-bottom:5px;cursor:pointer;">' +
     '<input type="radio" name="edit-loop-type" value="view" ' + (isViewLinked ? 'checked' : '') + ' style="margin-right:8px;">' +
-    (currentLang === 'fr' ? 'Lié à la vue (toutes les lignes)' : 'Linked to view (all rows)') + '</label>' +
+    (currentLang === 'fr' ? 'Lié à la vue courante' : 'Linked to current view') + '</label>' +
     '<label style="display:block;margin-bottom:5px;cursor:pointer;">' +
-    '<input type="radio" name="edit-loop-type" value="filter" ' + (!isViewLinked ? 'checked' : '') + ' style="margin-right:8px;">' +
-    (currentLang === 'fr' ? 'Avec filtre' : 'With filter') + '</label>' +
+    '<input type="radio" name="edit-loop-type" value="viewselect" ' + (isViewSelect ? 'checked' : '') + ' style="margin-right:8px;">' +
+    (currentLang === 'fr' ? 'Lié à une vue filtrée' : 'Linked to a filtered view') + '</label>' +
+    '<label style="display:block;margin-bottom:5px;cursor:pointer;">' +
+    '<input type="radio" name="edit-loop-type" value="filter" ' + (isFilterChecked ? 'checked' : '') + ' style="margin-right:8px;">' +
+    (currentLang === 'fr' ? 'Avec filtre manuel' : 'With manual filter') + '</label>' +
     '</div>' +
-    '<div id="edit-filter-options" style="' + (isViewLinked ? 'display:none;' : '') + 'border:1px solid #e5e7eb;padding:10px;border-radius:6px;background:#f9fafb;">' +
+    '<div id="edit-view-select-options" style="' + (isViewSelect ? '' : 'display:none;') + 'border:1px solid #e5e7eb;padding:10px;border-radius:6px;margin-bottom:10px;background:#f0fdf4;">' +
+    '<label style="display:block;margin-bottom:5px;font-weight:600;">' + (currentLang === 'fr' ? 'Vue à utiliser :' : 'View to use:') + '</label>' +
+    '<select id="edit-loop-view-select" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">' + viewOptions + '</select>' +
+    '</div>' +
+    '<div id="edit-filter-options" style="' + (isFilterChecked ? '' : 'display:none;') + 'border:1px solid #e5e7eb;padding:10px;border-radius:6px;background:#f9fafb;">' +
     '<div style="margin-bottom:10px;">' +
     '<label style="display:block;margin-bottom:5px;font-weight:600;">' + (currentLang === 'fr' ? 'Colonne à filtrer :' : 'Column to filter:') + '</label>' +
     '<select id="edit-loop-filter-col" onchange="updateEditLoopValueOptions()" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">' + colOptions + '</select>' +
@@ -1039,8 +1068,12 @@ function editTableLoop(tableElement) {
     radios.forEach(function(radio) {
       radio.addEventListener('change', function() {
         var filterOptions = document.getElementById('edit-filter-options');
+        var viewSelectOptions = document.getElementById('edit-view-select-options');
         if (filterOptions) {
           filterOptions.style.display = this.value === 'filter' ? 'block' : 'none';
+        }
+        if (viewSelectOptions) {
+          viewSelectOptions.style.display = this.value === 'viewselect' ? 'block' : 'none';
         }
       });
     });
@@ -1050,10 +1083,18 @@ function editTableLoop(tableElement) {
     if (!confirmed) return;
     
     var loopType = document.querySelector('input[name="edit-loop-type"]:checked');
-    var newIsViewLinked = loopType && loopType.value === 'view';
+    var loopTypeValue = loopType ? loopType.value : 'view';
     
-    if (newIsViewLinked) {
+    if (loopTypeValue === 'view') {
       loopComment.textContent = 'LOOP:*';
+    } else if (loopTypeValue === 'viewselect') {
+      var viewSelect = document.getElementById('edit-loop-view-select');
+      var selectedViewId = viewSelect ? viewSelect.value : '';
+      if (selectedViewId) {
+        loopComment.textContent = 'LOOP:VIEW:' + selectedViewId;
+      } else {
+        loopComment.textContent = 'LOOP:*';
+      }
     } else {
       var newFilterCol = document.getElementById('edit-loop-filter-col').value;
       var newFilterValSelect = document.getElementById('edit-loop-filter-val-select');
