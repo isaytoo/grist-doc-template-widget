@@ -428,41 +428,67 @@ async function loadViewsForTable(tableName) {
     
     // Find table ID for the selected table
     var tableId = null;
-    for (var i = 0; i < tablesData.id.length; i++) {
-      if (tablesData.tableId[i] === tableName) {
-        tableId = tablesData.id[i];
-        break;
+    if (tablesData && tablesData.id) {
+      for (var i = 0; i < tablesData.id.length; i++) {
+        if (tablesData.tableId[i] === tableName) {
+          tableId = tablesData.id[i];
+          break;
+        }
       }
     }
     if (!tableId) return;
     
     // Find all view sections that use this table
     var viewIdsWithTable = new Set();
-    var sectionFilters = {}; // viewId -> filters
+    var sectionFilters = {}; // sectionId -> filters
+    var sectionToView = {}; // sectionId -> viewId
     
-    for (var i = 0; i < sectionsData.id.length; i++) {
-      if (sectionsData.tableRef[i] === tableId) {
-        var viewId = sectionsData.parentId[i];
-        viewIdsWithTable.add(viewId);
-        
-        // Store filters if any
-        var filters = sectionsData.filters[i];
-        if (filters && filters !== '[]') {
-          sectionFilters[viewId] = filters;
+    if (sectionsData && sectionsData.id) {
+      for (var i = 0; i < sectionsData.id.length; i++) {
+        if (sectionsData.tableRef && sectionsData.tableRef[i] === tableId) {
+          var viewId = sectionsData.parentId ? sectionsData.parentId[i] : null;
+          var sectionId = sectionsData.id[i];
+          if (viewId) {
+            viewIdsWithTable.add(viewId);
+            sectionToView[sectionId] = viewId;
+            
+            // Store filters if any
+            if (sectionsData.filters && sectionsData.filters[i]) {
+              var filters = sectionsData.filters[i];
+              if (filters && filters !== '[]') {
+                sectionFilters[sectionId] = filters;
+              }
+            }
+          }
         }
       }
     }
     
     // Build list of views with their names and filters
-    for (var i = 0; i < viewsData.id.length; i++) {
-      var viewId = viewsData.id[i];
-      if (viewIdsWithTable.has(viewId)) {
-        var viewName = viewsData.name[i];
-        availableViews.push({
-          id: viewId,
-          name: viewName,
-          filters: sectionFilters[viewId] || null
-        });
+    if (viewsData && viewsData.id) {
+      for (var i = 0; i < viewsData.id.length; i++) {
+        var viewId = viewsData.id[i];
+        if (viewIdsWithTable.has(viewId)) {
+          var viewName = viewsData.name ? viewsData.name[i] : 'View ' + viewId;
+          
+          // Find filters for this view (from any of its sections)
+          var viewFilters = null;
+          var viewSectionId = null;
+          for (var secId in sectionToView) {
+            if (sectionToView[secId] === viewId && sectionFilters[secId]) {
+              viewFilters = sectionFilters[secId];
+              viewSectionId = secId;
+              break;
+            }
+          }
+          
+          availableViews.push({
+            id: viewId,
+            name: viewName,
+            filters: viewFilters,
+            sectionId: viewSectionId
+          });
+        }
       }
     }
     
