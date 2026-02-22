@@ -2390,14 +2390,31 @@ function executeLoopLinkedTable(linkedTableName, refColumn, loopContent, forPdf)
     var placeholder = document.getElementById(placeholderId);
     console.log('Placeholder found:', placeholder);
     if (placeholder) {
-      placeholder.outerHTML = result;
-      console.log('Placeholder replaced successfully');
+      // Create a temporary container to parse the result
+      var temp = document.createElement('tbody');
+      temp.innerHTML = result;
+      // Replace placeholder's parent row or the placeholder itself
+      var parentTr = placeholder.closest('tr');
+      if (parentTr && parentTr.parentNode) {
+        // Replace the placeholder row with the new rows
+        var parent = parentTr.parentNode;
+        while (temp.firstChild) {
+          parent.insertBefore(temp.firstChild, parentTr);
+        }
+        parent.removeChild(parentTr);
+        console.log('Placeholder row replaced successfully');
+      } else {
+        // Fallback: just replace the span
+        placeholder.outerHTML = result;
+        console.log('Placeholder span replaced');
+      }
     } else {
       console.warn('Placeholder not found in DOM');
     }
   });
   
-  return '<span id="' + placeholderId + '" style="color:#6b7280;font-style:italic;">' + (currentLang === 'fr' ? 'Chargement...' : 'Loading...') + '</span>';
+  // Return a placeholder row instead of a span
+  return '<tr id="' + placeholderId + '"><td colspan="99" style="color:#6b7280;font-style:italic;text-align:center;">' + (currentLang === 'fr' ? 'Chargement...' : 'Loading...') + '</td></tr>';
 }
 
 function executeLoopAllRows(loopContent, forPdf) {
