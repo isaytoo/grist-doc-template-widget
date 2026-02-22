@@ -909,6 +909,73 @@ async function updateLinkedTableColumns() {
   }
 }
 
+async function updateEditLinkedTableColumns() {
+  var tableSelect = document.getElementById('edit-linked-table');
+  var refColSelect = document.getElementById('edit-linked-ref-col');
+  
+  if (!tableSelect || !refColSelect) return;
+  
+  var linkedTableName = tableSelect.value;
+  if (!linkedTableName) {
+    refColSelect.innerHTML = '<option value="">' + (currentLang === 'fr' ? '-- Choisir la colonne Ref --' : '-- Choose Ref column --') + '</option>';
+    return;
+  }
+  
+  // Keep current value if exists
+  var currentValue = refColSelect.value;
+  
+  try {
+    // Fetch column metadata for the linked table
+    var colData = await grist.docApi.fetchTable('_grist_Tables_column');
+    var tablesData = await grist.docApi.fetchTable('_grist_Tables');
+    
+    // Find table ID
+    var tableId = null;
+    for (var i = 0; i < tablesData.id.length; i++) {
+      if (tablesData.tableId[i] === linkedTableName) {
+        tableId = tablesData.id[i];
+        break;
+      }
+    }
+    if (!tableId) return;
+    
+    // Get ref columns for this table
+    var refCols = [];
+    for (var i = 0; i < colData.id.length; i++) {
+      if (colData.parentId[i] === tableId) {
+        var colId = colData.colId[i];
+        var colType = colData.type[i];
+        
+        // Check if it's a Ref column pointing to the selected table
+        if (colType && colType.startsWith('Ref:') && colType === 'Ref:' + selectedTable) {
+          refCols.push(colId);
+        }
+      }
+    }
+    
+    // Populate reference column dropdown
+    refColSelect.innerHTML = '<option value="">' + (currentLang === 'fr' ? '-- Choisir la colonne Ref --' : '-- Choose Ref column --') + '</option>';
+    for (var r = 0; r < refCols.length; r++) {
+      var opt = document.createElement('option');
+      opt.value = refCols[r];
+      opt.textContent = refCols[r] + ' (→ ' + selectedTable + ')';
+      if (refCols[r] === currentValue) opt.selected = true;
+      refColSelect.appendChild(opt);
+    }
+    
+    // If no ref columns found, show a message
+    if (refCols.length === 0) {
+      var noRefOpt = document.createElement('option');
+      noRefOpt.value = '';
+      noRefOpt.textContent = currentLang === 'fr' ? '⚠️ Aucune colonne Ref vers ' + selectedTable : '⚠️ No Ref column to ' + selectedTable;
+      refColSelect.appendChild(noRefOpt);
+    }
+    
+  } catch (error) {
+    console.error('Error loading linked table columns:', error);
+  }
+}
+
 function updateEditLoopValueOptions() {
   var colSelect = document.getElementById('edit-loop-filter-col');
   var valSelect = document.getElementById('edit-loop-filter-val-select');
@@ -1225,22 +1292,55 @@ function editTableLoop(tableElement) {
     return;
   }
   
-  // For linked table loops, show info and allow basic editing
+  // For linked table loops, show full editing modal
   if (isLinkedTable) {
-    var linkedInfo = currentLang === 'fr' 
-      ? 'Ce tableau affiche les lignes de <strong>' + currentLinkedTable + '</strong> liées via la colonne <strong>' + currentLinkedRefCol + '</strong>.'
-      : 'This table shows rows from <strong>' + currentLinkedTable + '</strong> linked via column <strong>' + currentLinkedRefCol + '</strong>.';
+    // Build table selector options
+    var linkedTableOptions = '<option value="">' + (currentLang === 'fr' ? '-- Choisir une table --' : '-- Choose a table --') + '</option>';
+    for (var t = 0; t < allTables.length; t++) {
+      if (allTables[t] !== selectedTable) {
+        var selectedOpt = allTables[t] === currentLinkedTable ? 'selected' : '';
+        linkedTableOptions += '<option value="' + allTables[t] + '" ' + selectedOpt + '>' + allTables[t] + '</option>';
+      }
+    }
     
     var linkedFormHtml = '<div style="text-align:left;">' +
-      '<p style="margin-bottom:15px;padding:10px;background:#fef3c7;border-radius:6px;">' + linkedInfo + '</p>' +
-      '<p style="color:#6b7280;font-size:0.9em;">' + 
-      (currentLang === 'fr' 
-        ? 'Pour modifier ce tableau, supprimez-le et créez-en un nouveau avec "Tableau avec boucle" → "Lié à une table externe".'
-        : 'To modify this table, delete it and create a new one with "Table with loop" → "Linked to external table".') +
-      '</p>' +
+      '<div style="margin-bottom:15px;">' +
+      '<label style="display:block;margin-bottom:5px;font-weight:600;">' + (currentLang === 'fr' ? 'Table liée :' : 'Linked table:') + '</label>' +
+      '<select id="edit-linked-table" onchange="updateEditLinkedTableColumns()" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">' + linkedTableOptions + '</select>' +
+      '</div>' +
+      '<div style="margin-bottom:15px;">' +
+      '<label style="display:block;margin-bottom:5px;font-weight:600;">' + (currentLang === 'fr' ? 'Colonne de référence (vers ' + selectedTable + ') :' : 'Reference column (to ' + selectedTable + '):') + '</label>' +
+      '<select id="edit-linked-ref-col" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">' +
+      '<option value="' + currentLinkedRefCol + '" selected>' + currentLinkedRefCol + '</option>' +
+      '</select>' +
+      '</div>' +
       '</div>';
     
-    showModal(currentLang === 'fr' ? '🔗 Tableau lié' : '🔗 Linked table', linkedFormHtml);
+    // Show modal and handle confirmation
+    setTimeout(function() {
+      // Load columns for the current linked table
+      updateEditLinkedTableColumns();
+    }, 100);
+    
+    showModal(currentLang === 'fr' ? '🔗 Modifier le tableau lié' : '🔗 Edit linked table', linkedFormHtml).then(function(confirmed) {
+      if (!confirmed) return;
+      
+      var newLinkedTable = document.getElementById('edit-linked-table').value;
+      var newRefCol = document.getElementById('edit-linked-ref-col').value;
+      
+      if (!newLinkedTable || !newRefCol) {
+        showToast(currentLang === 'fr' ? 'Veuillez sélectionner une table et une colonne de référence' : 'Please select a table and reference column', 'error');
+        return;
+      }
+      
+      // Update the loop comment
+      loopComment.textContent = 'LOOP:TABLE:' + newLinkedTable + ':' + newRefCol;
+      
+      // Update editor content
+      var updatedHtml = tableElement.outerHTML;
+      
+      showToast(currentLang === 'fr' ? 'Boucle mise à jour' : 'Loop updated', 'success');
+    });
     return;
   }
   
