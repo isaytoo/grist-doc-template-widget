@@ -461,12 +461,11 @@ async function loadViewsForTable(tableName) {
             viewIdsWithTable.add(viewId);
             sectionToView[sectionId] = viewId;
             
-            // Store filters if any
-            if (sectionsData.filters && sectionsData.filters[i]) {
-              var filters = sectionsData.filters[i];
-              if (filters && filters !== '[]') {
-                sectionFilters[sectionId] = filters;
-              }
+            // Store filters if any - Grist uses 'filterSpec' field
+            var filterSpec = sectionsData.filterSpec ? sectionsData.filterSpec[i] : null;
+            console.log('Section', sectionId, 'filterSpec:', filterSpec);
+            if (filterSpec && filterSpec !== '[]' && filterSpec !== '') {
+              sectionFilters[sectionId] = filterSpec;
             }
           }
         }
