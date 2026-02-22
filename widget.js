@@ -1624,12 +1624,15 @@ function initEditor() {
   
   // Move toolbar to the var-panel section
   setTimeout(function() {
-    var toolbar = document.querySelector('.jodit-toolbar__box');
+    var joditContainer = document.querySelector('.jodit-container');
+    var toolbar = joditContainer ? joditContainer.querySelector('.jodit-toolbar__box') : null;
     var toolbarContainer = document.getElementById('jodit-toolbar-container');
+    console.log('Moving toolbar:', toolbar, 'to container:', toolbarContainer);
     if (toolbar && toolbarContainer) {
       toolbarContainer.appendChild(toolbar);
+      console.log('Toolbar moved successfully');
     }
-  }, 100);
+  }, 200);
 }
 
 // =============================================================================
