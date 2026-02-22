@@ -262,9 +262,12 @@
     .jodit-toolbar__box {
       background: white !important;
       border: 1px solid #e2e8f0 !important;
-      border-radius: 8px !important;
-      margin-bottom: 16px !important;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+      border-radius: 6px !important;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06) !important;
+      position: static !important;
+    }
+    #jodit-toolbar-container .jodit-toolbar__box {
+      margin: 0 !important;
     }
     .jodit-workplace {
       min-height: 400px !important;
@@ -705,6 +708,7 @@
           </div>
         </div>
         <div id="var-chips"></div>
+        <div id="jodit-toolbar-container" style="margin-top:10px;"></div>
       </div>
     </div>
 

@@ -1621,6 +1621,15 @@ function initEditor() {
       }
     }
   });
+  
+  // Move toolbar to the var-panel section
+  setTimeout(function() {
+    var toolbar = document.querySelector('.jodit-toolbar__box');
+    var toolbarContainer = document.getElementById('jodit-toolbar-container');
+    if (toolbar && toolbarContainer) {
+      toolbarContainer.appendChild(toolbar);
+    }
+  }, 100);
 }
 
 // =============================================================================
