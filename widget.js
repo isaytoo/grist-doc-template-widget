@@ -1183,7 +1183,10 @@ function editTableLoop(tableElement) {
   // Search for loop comment in tbody
   var isViewLinked = false;
   var isViewSelect = false;
+  var isLinkedTable = false;
   var currentViewId = '';
+  var currentLinkedTable = '';
+  var currentLinkedRefCol = '';
   for (var i = 0; i < tbody.childNodes.length; i++) {
     var node = tbody.childNodes[i];
     if (node.nodeType === 8) { // Comment node
@@ -1199,6 +1202,14 @@ function editTableLoop(tableElement) {
         currentViewId = viewMatch[1];
         break;
       }
+      var tableMatch = node.textContent.match(/^LOOP:TABLE:([^:]+):(.+)$/);
+      if (tableMatch) {
+        loopComment = node;
+        isLinkedTable = true;
+        currentLinkedTable = tableMatch[1];
+        currentLinkedRefCol = tableMatch[2];
+        break;
+      }
       var match = node.textContent.match(/^LOOP:([^=]+)=(.*)$/);
       if (match) {
         loopComment = node;
@@ -1211,6 +1222,14 @@ function editTableLoop(tableElement) {
   
   if (!loopComment) {
     showToast(currentLang === 'fr' ? 'Aucune boucle trouvée dans ce tableau' : 'No loop found in this table', 'error');
+    return;
+  }
+  
+  // For linked table loops, show a simplified message (editing not fully supported yet)
+  if (isLinkedTable) {
+    showToast(currentLang === 'fr' 
+      ? 'Tableau lié à ' + currentLinkedTable + ' (colonne: ' + currentLinkedRefCol + ')' 
+      : 'Table linked to ' + currentLinkedTable + ' (column: ' + currentLinkedRefCol + ')', 'info');
     return;
   }
   
