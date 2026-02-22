@@ -253,18 +253,23 @@
       background: white;
       border: 1px solid #e2e8f0;
       border-radius: 8px;
-      overflow: hidden;
-      max-height: calc(100vh - 280px);
-      overflow-y: auto;
-      position: relative;
+      overflow: visible;
     }
-    .jodit-container { border: none !important; }
+    .jodit-container { 
+      border: none !important;
+      display: flex !important;
+      flex-direction: column !important;
+    }
     .jodit-toolbar__box {
       position: sticky !important;
       top: 0 !important;
       z-index: 90 !important;
       background: white !important;
       border-bottom: 1px solid #e2e8f0 !important;
+    }
+    .jodit-workplace {
+      max-height: calc(100vh - 320px) !important;
+      overflow-y: auto !important;
     }
     .jodit-workplace { min-height: 400px !important; }
     .jodit-wysiwyg { font-family: 'Times New Roman', Times, serif; font-size: 14px; line-height: 1.6; }
