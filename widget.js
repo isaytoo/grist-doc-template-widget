@@ -206,7 +206,8 @@ function closeModal(result) {
 var allTables = [];
 var selectedTable = '';
 var tableColumns = [];
-var tableData = null;       // { col: [...], ... }
+var tableData = null;       // { col: [...], ... } - ALL data from table
+var filteredRecords = [];   // Records filtered by "Select By" (from grist.onRecords)
 var currentRecordIndex = 0;
 var templateHtml = '';
 var editorInstance = null;
@@ -289,6 +290,12 @@ if (!isInsideGrist()) {
             console.log('Template loaded from Grist options for', selectedTable);
           }
         }
+      });
+
+      // Listen for filtered records from "Select By" configuration
+      grist.onRecords(function(records) {
+        console.log('Received filtered records from Select By:', records.length);
+        filteredRecords = records || [];
       });
 
       // Load tables and restore selection
@@ -1687,7 +1694,55 @@ function processLoops(html, forPdf) {
 }
 
 function executeLoopAllRows(loopContent, forPdf) {
-  // Execute loop for ALL rows in the current view (no filtering)
+  // Execute loop for rows from "Select By" filtered view
+  // If no filtered records, fall back to all tableData rows
+  
+  var recordsToUse = filteredRecords.length > 0 ? filteredRecords : null;
+  
+  // If we have filtered records from "Select By", use them
+  if (recordsToUse && recordsToUse.length > 0) {
+    console.log('Using filtered records from Select By:', recordsToUse.length);
+    var output = '';
+    for (var j = 0; j < recordsToUse.length; j++) {
+      var rowRecord = recordsToUse[j];
+      
+      // Resolve variables in loopContent for this row
+      var rowHtml = loopContent;
+      for (var col in rowRecord) {
+        if (col === 'id') continue;
+        var val = rowRecord[col];
+        var display = formatValueForDisplay(val);
+        
+        // Replace styled spans
+        var styledRegex = new RegExp('<span[^>]*>\\{\\{' + escapeRegex(col) + '\\}\\}</span>', 'g');
+        if (display) {
+          if (forPdf) {
+            rowHtml = rowHtml.replace(styledRegex, '<strong>' + sanitize(display) + '</strong>');
+          } else {
+            rowHtml = rowHtml.replace(styledRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
+          }
+        } else {
+          rowHtml = rowHtml.replace(styledRegex, '');
+        }
+        
+        // Replace plain text variables
+        var plainRegex = new RegExp('\\{\\{' + escapeRegex(col) + '\\}\\}', 'g');
+        if (display) {
+          if (forPdf) {
+            rowHtml = rowHtml.replace(plainRegex, '<strong>' + sanitize(display) + '</strong>');
+          } else {
+            rowHtml = rowHtml.replace(plainRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
+          }
+        } else {
+          rowHtml = rowHtml.replace(plainRegex, '');
+        }
+      }
+      output += rowHtml;
+    }
+    return output;
+  }
+  
+  // Fallback: use all rows from tableData
   if (!tableData || !tableColumns.length) return '';
   
   // Get the number of rows from the first column
@@ -1697,6 +1752,8 @@ function executeLoopAllRows(loopContent, forPdf) {
   if (rowCount === 0) {
     return '<span style="color:#f59e0b;font-style:italic;">[' + (currentLang === 'fr' ? 'Aucune ligne dans la vue' : 'No rows in view') + ']</span>';
   }
+  
+  console.log('Using all rows from tableData (no Select By filter):', rowCount);
   
   // Generate output for each row
   var output = '';
