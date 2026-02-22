@@ -1225,11 +1225,22 @@ function editTableLoop(tableElement) {
     return;
   }
   
-  // For linked table loops, show a simplified message (editing not fully supported yet)
+  // For linked table loops, show info and allow basic editing
   if (isLinkedTable) {
-    showToast(currentLang === 'fr' 
-      ? 'Tableau lié à ' + currentLinkedTable + ' (colonne: ' + currentLinkedRefCol + ')' 
-      : 'Table linked to ' + currentLinkedTable + ' (column: ' + currentLinkedRefCol + ')', 'info');
+    var linkedInfo = currentLang === 'fr' 
+      ? 'Ce tableau affiche les lignes de <strong>' + currentLinkedTable + '</strong> liées via la colonne <strong>' + currentLinkedRefCol + '</strong>.'
+      : 'This table shows rows from <strong>' + currentLinkedTable + '</strong> linked via column <strong>' + currentLinkedRefCol + '</strong>.';
+    
+    var linkedFormHtml = '<div style="text-align:left;">' +
+      '<p style="margin-bottom:15px;padding:10px;background:#fef3c7;border-radius:6px;">' + linkedInfo + '</p>' +
+      '<p style="color:#6b7280;font-size:0.9em;">' + 
+      (currentLang === 'fr' 
+        ? 'Pour modifier ce tableau, supprimez-le et créez-en un nouveau avec "Tableau avec boucle" → "Lié à une table externe".'
+        : 'To modify this table, delete it and create a new one with "Table with loop" → "Linked to external table".') +
+      '</p>' +
+      '</div>';
+    
+    showModal(currentLang === 'fr' ? '🔗 Tableau lié' : '🔗 Linked table', linkedFormHtml);
     return;
   }
   
