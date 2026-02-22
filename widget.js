@@ -426,11 +426,10 @@ async function loadViewsForTable(tableName) {
     var sectionsData = await grist.docApi.fetchTable('_grist_Views_section');
     var tablesData = await grist.docApi.fetchTable('_grist_Tables');
     
-    // Try to fetch _grist_Filters table (where Grist stores saved filters)
+    // Fetch _grist_Filters table (where Grist stores saved filters)
     var filtersData = null;
     try {
       filtersData = await grist.docApi.fetchTable('_grist_Filters');
-      console.log('_grist_Filters data:', filtersData);
     } catch (e) {
       console.log('_grist_Filters not available:', e.message);
     }
@@ -447,9 +446,27 @@ async function loadViewsForTable(tableName) {
     }
     if (!tableId) return;
     
+    // Build a map of sectionId -> filters from _grist_Filters
+    var sectionFiltersFromGrist = {}; // sectionId -> [{colRef, filter}]
+    if (filtersData && filtersData.id) {
+      for (var i = 0; i < filtersData.id.length; i++) {
+        var sectionRef = filtersData.viewSectionRef[i];
+        var colRef = filtersData.colRef[i];
+        var filterJson = filtersData.filter[i];
+        
+        if (!sectionFiltersFromGrist[sectionRef]) {
+          sectionFiltersFromGrist[sectionRef] = [];
+        }
+        sectionFiltersFromGrist[sectionRef].push({
+          colRef: colRef,
+          filter: filterJson
+        });
+      }
+    }
+    
     // Find all view sections that use this table
     var viewIdsWithTable = new Set();
-    var sectionFilters = {}; // sectionId -> filters
+    var sectionFilters = {}; // sectionId -> filters array
     var sectionToView = {}; // sectionId -> viewId
     
     if (sectionsData && sectionsData.id) {
@@ -461,11 +478,9 @@ async function loadViewsForTable(tableName) {
             viewIdsWithTable.add(viewId);
             sectionToView[sectionId] = viewId;
             
-            // Store filters if any - Grist uses 'filterSpec' field
-            var filterSpec = sectionsData.filterSpec ? sectionsData.filterSpec[i] : null;
-            console.log('Section', sectionId, 'filterSpec:', filterSpec);
-            if (filterSpec && filterSpec !== '[]' && filterSpec !== '') {
-              sectionFilters[sectionId] = filterSpec;
+            // Get filters from _grist_Filters for this section
+            if (sectionFiltersFromGrist[sectionId]) {
+              sectionFilters[sectionId] = sectionFiltersFromGrist[sectionId];
             }
           }
         }
@@ -1891,25 +1906,31 @@ function executeLoopFromView(viewId, loopContent, forPdf) {
   }
   
   // Parse filters from the view
+  // viewInfo.filters is now an array of {colRef, filter} objects from _grist_Filters
   var filters = [];
-  if (viewInfo.filters) {
+  if (viewInfo.filters && Array.isArray(viewInfo.filters)) {
     try {
-      // Grist stores filters as JSON string: [{"colRef":colId,"filter":"..."}]
-      var parsedFilters = JSON.parse(viewInfo.filters);
-      for (var f = 0; f < parsedFilters.length; f++) {
-        var filterDef = parsedFilters[f];
+      for (var f = 0; f < viewInfo.filters.length; f++) {
+        var filterDef = viewInfo.filters[f];
         var colRef = filterDef.colRef;
         var filterJson = filterDef.filter;
         
         // Resolve column name from colRef
         var colName = columnIdToName[colRef];
         if (colName && filterJson) {
-          // Parse filter values: {"included":["val1","val2"]}
+          // Parse filter values: {"included":[...]} or {"excluded":[...]}
           var filterData = JSON.parse(filterJson);
           if (filterData.included && filterData.included.length > 0) {
             filters.push({
               column: colName,
+              type: 'included',
               values: filterData.included
+            });
+          } else if (filterData.excluded && filterData.excluded.length > 0) {
+            filters.push({
+              column: colName,
+              type: 'excluded',
+              values: filterData.excluded
             });
           }
         }
@@ -1941,19 +1962,29 @@ function executeLoopFromView(viewId, loopContent, forPdf) {
     for (var fi = 0; fi < filters.length; fi++) {
       var filter = filters[fi];
       var rowVal = rowRecord[filter.column];
-      var rowValStr = String(rowVal);
       
-      // Check if row value is in the filter's included values
+      // Check if row value matches the filter
       var found = false;
       for (var vi = 0; vi < filter.values.length; vi++) {
-        if (String(filter.values[vi]) === rowValStr) {
+        // Compare as same type (number to number, string to string)
+        if (rowVal === filter.values[vi] || String(rowVal) === String(filter.values[vi])) {
           found = true;
           break;
         }
       }
-      if (!found) {
-        matches = false;
-        break;
+      
+      if (filter.type === 'included') {
+        // For included filters, row must have one of the values
+        if (!found) {
+          matches = false;
+          break;
+        }
+      } else if (filter.type === 'excluded') {
+        // For excluded filters, row must NOT have any of the values
+        if (found) {
+          matches = false;
+          break;
+        }
       }
     }
     
