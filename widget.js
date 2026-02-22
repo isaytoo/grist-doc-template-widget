@@ -1588,6 +1588,34 @@ async function clearEditor() {
   }
 }
 
+// --- Refresh filters button ---
+
+async function refreshFilters() {
+  if (!selectedTable) {
+    showToast(currentLang === 'fr' ? 'Sélectionnez d\'abord une table' : 'Select a table first', 'error');
+    return;
+  }
+  
+  showToast(currentLang === 'fr' ? 'Actualisation des filtres...' : 'Refreshing filters...', 'info');
+  
+  // Reload table data
+  try {
+    var data = await grist.docApi.fetchTable(selectedTable);
+    tableData = data;
+    
+    // Reload views and filters
+    await loadViewsForTable(selectedTable);
+    
+    // Re-render preview
+    renderPreview();
+    
+    showToast(currentLang === 'fr' ? 'Filtres actualisés !' : 'Filters refreshed!', 'success');
+  } catch (error) {
+    console.error('Error refreshing filters:', error);
+    showToast(currentLang === 'fr' ? 'Erreur lors de l\'actualisation' : 'Error refreshing', 'error');
+  }
+}
+
 // --- PDF template selector ---
 
 async function refreshPdfTemplateList() {
