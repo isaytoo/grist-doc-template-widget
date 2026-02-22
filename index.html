@@ -725,6 +725,9 @@
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <label style="font-size:12px;font-weight:600;color:#475569;white-space:nowrap;" data-i18n="templateName">Nom du modèle :</label>
           <input type="text" id="template-name-input" placeholder="Ex: Courrier standard, PV réunion..." style="flex:1;min-width:140px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;" />
+          <select id="save-target-select" style="padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;background:white;">
+            <option value="new" data-i18n="saveAsNew">Nouveau modèle</option>
+          </select>
           <button class="btn btn-primary btn-sm" onclick="saveTemplate()">
             💾 <span data-i18n="saveTemplate">Sauvegarder</span>
           </button>

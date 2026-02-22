@@ -1705,15 +1705,30 @@ async function saveTemplateIndex(index) {
 
 async function refreshTemplateList() {
   var select = document.getElementById('template-list');
+  var saveTargetSelect = document.getElementById('save-target-select');
   if (!select) return;
   var index = await getTemplateIndex();
   select.innerHTML = '<option value="">' + t('templateSelectDefault') + '</option>';
+  
+  // Also update save target dropdown
+  if (saveTargetSelect) {
+    saveTargetSelect.innerHTML = '<option value="new">' + (currentLang === 'fr' ? '➕ Nouveau modèle' : '➕ New template') + '</option>';
+  }
+  
   for (var i = 0; i < index.templates.length; i++) {
     var opt = document.createElement('option');
     opt.value = index.templates[i].name;
     opt.textContent = index.templates[i].name;
     if (index.templates[i].name === currentTemplateName) opt.selected = true;
     select.appendChild(opt);
+    
+    // Add to save target dropdown too
+    if (saveTargetSelect) {
+      var saveOpt = document.createElement('option');
+      saveOpt.value = index.templates[i].name;
+      saveOpt.textContent = '📝 ' + index.templates[i].name;
+      saveTargetSelect.appendChild(saveOpt);
+    }
   }
   // Show/hide delete button
   var delBtn = document.getElementById('btn-delete-template');
@@ -1761,12 +1776,22 @@ async function saveTemplate() {
   if (!selectedTable) return;
 
   var nameInput = document.getElementById('template-name-input');
-  var name = (nameInput ? nameInput.value.trim() : '') || currentTemplateName;
-  if (!name) {
-    // Prompt for name
-    name = prompt(t('templateName'), t('templateNamePlaceholder'));
-    if (!name || !name.trim()) return;
-    name = name.trim();
+  var saveTargetSelect = document.getElementById('save-target-select');
+  var saveTarget = saveTargetSelect ? saveTargetSelect.value : 'new';
+  
+  var name;
+  if (saveTarget === 'new') {
+    // Creating new template - use name input
+    name = (nameInput ? nameInput.value.trim() : '');
+    if (!name) {
+      // Prompt for name
+      name = prompt(t('templateName'), t('templateNamePlaceholder'));
+      if (!name || !name.trim()) return;
+      name = name.trim();
+    }
+  } else {
+    // Overwriting existing template
+    name = saveTarget;
   }
 
   var index = await getTemplateIndex();
@@ -1787,7 +1812,7 @@ async function saveTemplate() {
   currentTemplateName = name;
   if (nameInput) nameInput.value = name;
   await refreshTemplateList();
-  showToast(t('templateSaved'), 'success');
+  showToast(saveTarget === 'new' ? t('templateSaved') : (currentLang === 'fr' ? 'Modèle "' + name + '" mis à jour' : 'Template "' + name + '" updated'), 'success');
 }
 
 async function loadSavedTemplate() {
