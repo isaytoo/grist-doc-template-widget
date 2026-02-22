@@ -426,6 +426,15 @@ async function loadViewsForTable(tableName) {
     var sectionsData = await grist.docApi.fetchTable('_grist_Views_section');
     var tablesData = await grist.docApi.fetchTable('_grist_Tables');
     
+    // Debug: log all fields in sectionsData to find where filters are stored
+    console.log('_grist_Views_section fields:', Object.keys(sectionsData));
+    if (sectionsData.id && sectionsData.id.length > 0) {
+      console.log('Sample section data (first entry):');
+      for (var key in sectionsData) {
+        console.log('  ' + key + ':', sectionsData[key][0]);
+      }
+    }
+    
     // Find table ID for the selected table
     var tableId = null;
     if (tablesData && tablesData.id) {
