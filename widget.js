@@ -1493,6 +1493,7 @@ function initEditor() {
     placeholder: currentLang === 'fr' ? 'Commencez à écrire votre document ici...' : 'Start writing your document here...',
     allowResizeY: true,
     toolbarAdaptive: false,
+    toolbarContainer: '#jodit-toolbar-container',
     askBeforePasteHTML: false,
     askBeforePasteFromWord: false,
     defaultActionOnPaste: 'insert_clear_html',
@@ -1622,15 +1623,6 @@ function initEditor() {
     }
   });
   
-  // Move toolbar to the var-panel section
-  setTimeout(function() {
-    var joditContainer = document.querySelector('.jodit-container');
-    var toolbar = joditContainer ? joditContainer.querySelector('.jodit-toolbar__box') : null;
-    var toolbarContainer = document.getElementById('jodit-toolbar-container');
-    if (toolbar && toolbarContainer) {
-      toolbarContainer.appendChild(toolbar);
-    }
-  }, 200);
 }
 
 // =============================================================================
