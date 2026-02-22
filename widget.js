@@ -818,6 +818,97 @@ function updateLoopValueOptions() {
   }
 }
 
+// Cache for linked table metadata
+var linkedTableMetadata = {};
+
+async function updateLinkedTableColumns() {
+  var tableSelect = document.getElementById('loop-linked-table');
+  var refColSelect = document.getElementById('loop-linked-ref-col');
+  var colsContainer = document.getElementById('linked-cols-container');
+  var colsCheckboxes = document.getElementById('linked-cols-checkboxes');
+  
+  if (!tableSelect || !refColSelect || !colsCheckboxes) return;
+  
+  var linkedTableName = tableSelect.value;
+  if (!linkedTableName) {
+    refColSelect.innerHTML = '<option value="">' + (currentLang === 'fr' ? '-- Choisir la colonne Ref --' : '-- Choose Ref column --') + '</option>';
+    colsCheckboxes.innerHTML = '';
+    if (colsContainer) colsContainer.style.display = 'none';
+    return;
+  }
+  
+  try {
+    // Fetch column metadata for the linked table
+    var colData = await grist.docApi.fetchTable('_grist_Tables_column');
+    var tablesData = await grist.docApi.fetchTable('_grist_Tables');
+    
+    // Find table ID
+    var tableId = null;
+    for (var i = 0; i < tablesData.id.length; i++) {
+      if (tablesData.tableId[i] === linkedTableName) {
+        tableId = tablesData.id[i];
+        break;
+      }
+    }
+    if (!tableId) return;
+    
+    // Get columns for this table
+    var linkedCols = [];
+    var refCols = [];
+    for (var i = 0; i < colData.id.length; i++) {
+      if (colData.parentId[i] === tableId) {
+        var colId = colData.colId[i];
+        var colType = colData.type[i];
+        
+        // Skip internal columns
+        if (colId.startsWith('gristHelper_') || colId === 'manualSort') continue;
+        
+        linkedCols.push(colId);
+        
+        // Check if it's a Ref column pointing to the selected table
+        if (colType && colType.startsWith('Ref:') && colType === 'Ref:' + selectedTable) {
+          refCols.push(colId);
+        }
+      }
+    }
+    
+    // Populate reference column dropdown
+    refColSelect.innerHTML = '<option value="">' + (currentLang === 'fr' ? '-- Choisir la colonne Ref --' : '-- Choose Ref column --') + '</option>';
+    for (var r = 0; r < refCols.length; r++) {
+      var opt = document.createElement('option');
+      opt.value = refCols[r];
+      opt.textContent = refCols[r] + ' (→ ' + selectedTable + ')';
+      refColSelect.appendChild(opt);
+    }
+    
+    // If no ref columns found, show a message
+    if (refCols.length === 0) {
+      var noRefOpt = document.createElement('option');
+      noRefOpt.value = '';
+      noRefOpt.textContent = currentLang === 'fr' ? '⚠️ Aucune colonne Ref vers ' + selectedTable : '⚠️ No Ref column to ' + selectedTable;
+      refColSelect.appendChild(noRefOpt);
+    }
+    
+    // Populate columns checkboxes
+    colsCheckboxes.innerHTML = '';
+    for (var c = 0; c < linkedCols.length; c++) {
+      var checked = c < 5 ? 'checked' : '';
+      var label = document.createElement('label');
+      label.style.cssText = 'display:block;margin-bottom:5px;cursor:pointer;';
+      label.innerHTML = '<input type="checkbox" value="' + linkedCols[c] + '" ' + checked + ' style="margin-right:8px;">' + linkedCols[c];
+      colsCheckboxes.appendChild(label);
+    }
+    
+    if (colsContainer) colsContainer.style.display = 'block';
+    
+    // Cache metadata
+    linkedTableMetadata[linkedTableName] = { columns: linkedCols, refColumns: refCols };
+    
+  } catch (error) {
+    console.error('Error loading linked table columns:', error);
+  }
+}
+
 function updateEditLoopValueOptions() {
   var colSelect = document.getElementById('edit-loop-filter-col');
   var valSelect = document.getElementById('edit-loop-filter-val-select');
@@ -861,6 +952,18 @@ function insertTableWithLoop() {
     ? '💡 Sélectionnez une vue existante pour utiliser ses filtres'
     : '💡 Select an existing view to use its filters';
   
+  var linkedTableHelp = currentLang === 'fr'
+    ? '💡 Affiche les lignes d\'une autre table liées à l\'enregistrement courant (ex: Facture_details liée à Facture)'
+    : '💡 Shows rows from another table linked to the current record (e.g., Invoice_details linked to Invoice)';
+  
+  // Build table selector options (all tables except current)
+  var tableOptions = '<option value="">' + (currentLang === 'fr' ? '-- Choisir une table --' : '-- Choose a table --') + '</option>';
+  for (var t = 0; t < allTables.length; t++) {
+    if (allTables[t] !== selectedTable) {
+      tableOptions += '<option value="' + allTables[t] + '">' + allTables[t] + '</option>';
+    }
+  }
+  
   var formHtml = '<div style="text-align:left;">' +
     '<div style="margin-bottom:15px;">' +
     '<label style="display:block;margin-bottom:8px;font-weight:600;">' + (currentLang === 'fr' ? 'Type de tableau :' : 'Table type:') + '</label>' +
@@ -873,12 +976,32 @@ function insertTableWithLoop() {
     (currentLang === 'fr' ? 'Lié à une vue filtrée' : 'Linked to a filtered view') + '</label>' +
     '<p style="margin:0 0 10px 24px;font-size:0.85em;color:#6b7280;">' + viewSelectHelp + '</p>' +
     '<label style="display:block;margin-bottom:5px;cursor:pointer;">' +
+    '<input type="radio" name="loop-type" value="linkedtable" style="margin-right:8px;">' +
+    (currentLang === 'fr' ? 'Lié à une table externe' : 'Linked to external table') + '</label>' +
+    '<p style="margin:0 0 10px 24px;font-size:0.85em;color:#6b7280;">' + linkedTableHelp + '</p>' +
+    '<label style="display:block;margin-bottom:5px;cursor:pointer;">' +
     '<input type="radio" name="loop-type" value="filter" style="margin-right:8px;">' +
     (currentLang === 'fr' ? 'Avec filtre manuel' : 'With manual filter') + '</label>' +
     '</div>' +
     '<div id="view-select-options" style="display:none;border:1px solid #e5e7eb;padding:10px;border-radius:6px;margin-bottom:10px;background:#f0fdf4;">' +
     '<label style="display:block;margin-bottom:5px;font-weight:600;">' + (currentLang === 'fr' ? 'Vue à utiliser :' : 'View to use:') + '</label>' +
     '<select id="loop-view-select" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">' + viewOptions + '</select>' +
+    '</div>' +
+    '<div id="linked-table-options" style="display:none;border:1px solid #e5e7eb;padding:10px;border-radius:6px;margin-bottom:10px;background:#fef3c7;">' +
+    '<div style="margin-bottom:10px;">' +
+    '<label style="display:block;margin-bottom:5px;font-weight:600;">' + (currentLang === 'fr' ? 'Table à afficher :' : 'Table to display:') + '</label>' +
+    '<select id="loop-linked-table" onchange="updateLinkedTableColumns()" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">' + tableOptions + '</select>' +
+    '</div>' +
+    '<div style="margin-bottom:10px;">' +
+    '<label style="display:block;margin-bottom:5px;font-weight:600;">' + (currentLang === 'fr' ? 'Colonne de référence (vers ' + selectedTable + ') :' : 'Reference column (to ' + selectedTable + '):') + '</label>' +
+    '<select id="loop-linked-ref-col" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;">' +
+    '<option value="">' + (currentLang === 'fr' ? '-- Choisir la colonne Ref --' : '-- Choose Ref column --') + '</option>' +
+    '</select>' +
+    '</div>' +
+    '<div id="linked-cols-container" style="display:none;">' +
+    '<label style="display:block;margin-bottom:5px;font-weight:600;">' + (currentLang === 'fr' ? 'Colonnes à afficher :' : 'Columns to display:') + '</label>' +
+    '<div id="linked-cols-checkboxes" style="max-height:120px;overflow-y:auto;border:1px solid #eee;padding:8px;border-radius:4px;background:white;"></div>' +
+    '</div>' +
     '</div>' +
     '<div id="filter-options" style="display:none;border:1px solid #e5e7eb;padding:10px;border-radius:6px;margin-bottom:10px;background:#f9fafb;">' +
     '<div style="margin-bottom:10px;">' +
@@ -915,11 +1038,20 @@ function insertTableWithLoop() {
       radio.addEventListener('change', function() {
         var filterOptions = document.getElementById('filter-options');
         var viewSelectOptions = document.getElementById('view-select-options');
+        var linkedTableOptions = document.getElementById('linked-table-options');
+        var loopColsSection = document.getElementById('loop-cols-checkboxes');
         if (filterOptions) {
           filterOptions.style.display = this.value === 'filter' ? 'block' : 'none';
         }
         if (viewSelectOptions) {
           viewSelectOptions.style.display = this.value === 'viewselect' ? 'block' : 'none';
+        }
+        if (linkedTableOptions) {
+          linkedTableOptions.style.display = this.value === 'linkedtable' ? 'block' : 'none';
+        }
+        // Hide main columns section when linkedtable is selected (it has its own)
+        if (loopColsSection && loopColsSection.parentElement) {
+          loopColsSection.parentElement.style.display = this.value === 'linkedtable' ? 'none' : 'block';
         }
       });
     });
@@ -936,6 +1068,9 @@ function insertTableWithLoop() {
     var filterVal = '';
     var selectedViewId = '';
     
+    var linkedTableName = '';
+    var linkedRefCol = '';
+    
     if (loopTypeValue === 'filter') {
       filterCol = document.getElementById('loop-filter-col').value;
       // Use dropdown value if selected, otherwise use text input
@@ -945,14 +1080,30 @@ function insertTableWithLoop() {
     } else if (loopTypeValue === 'viewselect') {
       var viewSelect = document.getElementById('loop-view-select');
       selectedViewId = viewSelect ? viewSelect.value : '';
+    } else if (loopTypeValue === 'linkedtable') {
+      var linkedTableSelect = document.getElementById('loop-linked-table');
+      var linkedRefColSelect = document.getElementById('loop-linked-ref-col');
+      linkedTableName = linkedTableSelect ? linkedTableSelect.value : '';
+      linkedRefCol = linkedRefColSelect ? linkedRefColSelect.value : '';
     }
     
-    // Get selected columns
-    var checkboxes = document.querySelectorAll('#loop-cols-checkboxes input[type="checkbox"]:checked');
+    // Get selected columns (from linked table if linkedtable type)
+    var checkboxes;
     var selectedCols = [];
+    if (loopTypeValue === 'linkedtable') {
+      checkboxes = document.querySelectorAll('#linked-cols-checkboxes input[type="checkbox"]:checked');
+    } else {
+      checkboxes = document.querySelectorAll('#loop-cols-checkboxes input[type="checkbox"]:checked');
+    }
     checkboxes.forEach(function(cb) { selectedCols.push(cb.value); });
     
-    if (selectedCols.length === 0) selectedCols = tableColumns.slice(0, 5);
+    if (selectedCols.length === 0) {
+      if (loopTypeValue === 'linkedtable' && linkedTableMetadata[linkedTableName]) {
+        selectedCols = linkedTableMetadata[linkedTableName].columns.slice(0, 5);
+      } else {
+        selectedCols = tableColumns.slice(0, 5);
+      }
+    }
     
     // Build table HTML
     var headerCells = '';
@@ -979,6 +1130,16 @@ function insertTableWithLoop() {
         '<thead><tr>' + headerCells + '</tr></thead>' +
         '<tbody>' +
         '<!--LOOP:VIEW:' + selectedViewId + '-->' +
+        '<tr>' + dataCells + '</tr>' +
+        '<!--/LOOP-->' +
+        '</tbody>' +
+        '</table>';
+    } else if (loopTypeValue === 'linkedtable' && linkedTableName && linkedRefCol) {
+      // Linked table: uses <!--LOOP:TABLE:tableName:refColumn--> to show rows from linked table
+      tableHtml = '<table style="border-collapse:collapse;width:100%;margin:10px 0;">' +
+        '<thead><tr>' + headerCells + '</tr></thead>' +
+        '<tbody>' +
+        '<!--LOOP:TABLE:' + linkedTableName + ':' + linkedRefCol + '-->' +
         '<tr>' + dataCells + '</tr>' +
         '<!--/LOOP-->' +
         '</tbody>' +
@@ -1869,7 +2030,8 @@ function processLoops(html, forPdf) {
   // Process HTML comment-based loops (for tables): <!--LOOP:Column=Value-->...<!--/LOOP-->
   // Also supports <!--LOOP:*--> for view-linked tables (all rows)
   // Also supports <!--LOOP:VIEW:viewId--> for specific view filters
-  var commentLoopRegex = /<!--LOOP:(\*|VIEW:\d+|[^=]+=[^-]+)-->([\s\S]*?)<!--\/LOOP-->/gi;
+  // Also supports <!--LOOP:TABLE:tableName:refColumn--> for linked tables
+  var commentLoopRegex = /<!--LOOP:(\*|VIEW:\d+|TABLE:[^:]+:[^-]+|[^=]+=[^-]+)-->([\s\S]*?)<!--\/LOOP-->/gi;
   resolved = resolved.replace(commentLoopRegex, function(match, loopSpec, loopContent) {
     if (loopSpec === '*') {
       // View-linked: show all rows from current view
@@ -1878,6 +2040,12 @@ function processLoops(html, forPdf) {
       // View-select: show rows filtered by specific view
       var viewId = loopSpec.substring(5);
       return executeLoopFromView(viewId, loopContent, forPdf);
+    } else if (loopSpec.startsWith('TABLE:')) {
+      // Linked table: TABLE:tableName:refColumn
+      var tableParts = loopSpec.substring(6).split(':');
+      var linkedTableName = tableParts[0].trim();
+      var refColumn = tableParts[1].trim();
+      return executeLoopLinkedTable(linkedTableName, refColumn, loopContent, forPdf);
     } else {
       // Filtered: parse Column=Value
       var parts = loopSpec.split('=');
@@ -2066,6 +2234,131 @@ function executeLoopFromView(viewId, loopContent, forPdf) {
   }
   
   return output;
+}
+
+// Cache for linked table data
+var linkedTableCache = {};
+
+async function executeLoopLinkedTableAsync(linkedTableName, refColumn, loopContent, forPdf, currentRecordId) {
+  // Execute loop for rows from a linked table, filtered by reference to current record
+  // Example: Facture_details where Facture_Ref = currentRecordId
+  
+  var output = '';
+  
+  try {
+    // Fetch linked table data (use cache if available)
+    var linkedData;
+    if (linkedTableCache[linkedTableName]) {
+      linkedData = linkedTableCache[linkedTableName];
+    } else {
+      linkedData = await grist.docApi.fetchTable(linkedTableName);
+      linkedTableCache[linkedTableName] = linkedData;
+    }
+    
+    if (!linkedData || !linkedData.id) {
+      return '<span style="color:#ef4444;font-style:italic;">[' + (currentLang === 'fr' ? 'Table non trouvée: ' : 'Table not found: ') + linkedTableName + ']</span>';
+    }
+    
+    // Check if refColumn exists
+    if (!linkedData[refColumn]) {
+      return '<span style="color:#ef4444;font-style:italic;">[' + (currentLang === 'fr' ? 'Colonne de référence non trouvée: ' : 'Reference column not found: ') + refColumn + ']</span>';
+    }
+    
+    var rowCount = linkedData.id.length;
+    var matchCount = 0;
+    
+    // Get columns from linked table
+    var linkedColumns = Object.keys(linkedData).filter(function(k) {
+      return k !== 'id' && k !== 'manualSort' && !k.startsWith('gristHelper_');
+    });
+    
+    for (var i = 0; i < rowCount; i++) {
+      // Check if this row references the current record
+      var refValue = linkedData[refColumn][i];
+      
+      // Handle both direct ID and reference object
+      var refId = refValue;
+      if (typeof refValue === 'object' && refValue !== null) {
+        refId = refValue.id || refValue;
+      }
+      
+      if (refId !== currentRecordId) continue;
+      
+      matchCount++;
+      
+      // Build row record
+      var rowRecord = { id: linkedData.id[i] };
+      for (var c = 0; c < linkedColumns.length; c++) {
+        var col = linkedColumns[c];
+        rowRecord[col] = linkedData[col][i];
+      }
+      
+      // Resolve variables in loopContent for this row
+      var rowHtml = loopContent;
+      for (var col in rowRecord) {
+        if (col === 'id') continue;
+        var val = rowRecord[col];
+        var display = formatValueForDisplay(val);
+        
+        // Replace styled spans
+        var styledRegex = new RegExp('<span[^>]*>\\{\\{' + escapeRegex(col) + '\\}\\}</span>', 'g');
+        if (display) {
+          if (forPdf) {
+            rowHtml = rowHtml.replace(styledRegex, '<strong>' + sanitize(display) + '</strong>');
+          } else {
+            rowHtml = rowHtml.replace(styledRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
+          }
+        } else {
+          rowHtml = rowHtml.replace(styledRegex, '');
+        }
+        
+        // Replace plain text variables
+        var plainRegex = new RegExp('\\{\\{' + escapeRegex(col) + '\\}\\}', 'g');
+        if (display) {
+          if (forPdf) {
+            rowHtml = rowHtml.replace(plainRegex, '<strong>' + sanitize(display) + '</strong>');
+          } else {
+            rowHtml = rowHtml.replace(plainRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
+          }
+        } else {
+          rowHtml = rowHtml.replace(plainRegex, '');
+        }
+      }
+      output += rowHtml;
+    }
+    
+    if (matchCount === 0) {
+      return '<span style="color:#f59e0b;font-style:italic;">[' + (currentLang === 'fr' ? 'Aucune ligne liée dans ' : 'No linked rows in ') + linkedTableName + ']</span>';
+    }
+    
+    return output;
+  } catch (error) {
+    console.error('Error in executeLoopLinkedTableAsync:', error);
+    return '<span style="color:#ef4444;font-style:italic;">[' + (currentLang === 'fr' ? 'Erreur: ' : 'Error: ') + error.message + ']</span>';
+  }
+}
+
+function executeLoopLinkedTable(linkedTableName, refColumn, loopContent, forPdf) {
+  // Synchronous wrapper - returns placeholder that will be replaced async
+  // Get current record ID
+  if (!tableData || !tableData.id || tableData.id.length === 0) {
+    return '<span style="color:#ef4444;font-style:italic;">[' + (currentLang === 'fr' ? 'Pas d\'enregistrement courant' : 'No current record') + ']</span>';
+  }
+  
+  var currentRecordId = tableData.id[currentRecordIndex];
+  
+  // Create a unique placeholder
+  var placeholderId = 'linked-table-' + linkedTableName + '-' + refColumn + '-' + currentRecordId + '-' + Date.now();
+  
+  // Execute async and update DOM when ready
+  executeLoopLinkedTableAsync(linkedTableName, refColumn, loopContent, forPdf, currentRecordId).then(function(result) {
+    var placeholder = document.getElementById(placeholderId);
+    if (placeholder) {
+      placeholder.outerHTML = result;
+    }
+  });
+  
+  return '<span id="' + placeholderId + '" style="color:#6b7280;font-style:italic;">' + (currentLang === 'fr' ? 'Chargement...' : 'Loading...') + '</span>';
 }
 
 function executeLoopAllRows(loopContent, forPdf) {
