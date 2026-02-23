@@ -3240,32 +3240,45 @@ async function renderHtmlToPdfPages(html, pdf, pageWidth, pageHeight, pageSize) 
     images.forEach(function(img) {
       img.style.maxWidth = '100%';
       img.style.height = 'auto';
-      img.crossOrigin = 'anonymous';
     });
     
     document.body.appendChild(tempDiv);
 
-    // Wait for all images to load before rendering
+    // Convert images to data URLs to avoid CORS issues
     if (images.length > 0) {
-      await Promise.all(Array.from(images).map(function(img) {
-        return new Promise(function(resolve) {
-          if (img.complete && img.naturalHeight !== 0) {
-            resolve();
-          } else {
+      await Promise.all(Array.from(images).map(async function(img) {
+        var originalSrc = img.src;
+        if (!originalSrc || originalSrc.indexOf('data:') === 0) {
+          return; // Already a data URL or no src
+        }
+        
+        try {
+          // Try to fetch the image and convert to data URL
+          var response = await fetch(originalSrc, { mode: 'cors', credentials: 'include' });
+          if (response.ok) {
+            var blob = await response.blob();
+            var dataUrl = await new Promise(function(resolve) {
+              var reader = new FileReader();
+              reader.onloadend = function() { resolve(reader.result); };
+              reader.readAsDataURL(blob);
+            });
+            img.src = dataUrl;
+          }
+        } catch (e) {
+          console.warn('Could not convert image to data URL:', originalSrc, e);
+          // Try loading normally as fallback
+        }
+        
+        // Wait for image to be ready
+        if (!img.complete) {
+          await new Promise(function(resolve) {
             img.onload = resolve;
             img.onerror = function() {
-              // On error, try to load as data URL if it's a Grist attachment
-              console.warn('Image failed to load:', img.src);
+              console.warn('Image failed to load:', originalSrc);
               resolve();
             };
-            // Force reload for CORS
-            var originalSrc = img.src;
-            if (originalSrc && originalSrc.indexOf('data:') !== 0) {
-              img.src = '';
-              img.src = originalSrc;
-            }
-          }
-        });
+          });
+        }
       }));
     }
 
