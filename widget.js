@@ -79,7 +79,10 @@ var i18n = {
     importBtn: 'Importer .docx',
     boolFormat: 'Cases à cocher :',
     boolFormatText: 'Oui / Non',
-    boolFormatCheckbox: '☑ / ☐'
+    boolFormatCheckbox: '☑ / ☐',
+    skipEmptyPages: 'Pages vides :',
+    skipEmptyPagesYes: 'Ignorer (recto seul)',
+    skipEmptyPagesNo: 'Conserver (recto-verso)'
   },
   en: {
     title: 'Document Template',
@@ -113,6 +116,9 @@ var i18n = {
     boolFormat: 'Checkboxes:',
     boolFormatText: 'Yes / No',
     boolFormatCheckbox: '☑ / ☐',
+    skipEmptyPages: 'Empty pages:',
+    skipEmptyPagesYes: 'Skip (single-sided)',
+    skipEmptyPagesNo: 'Keep (double-sided)',
     pdfGenerate: 'Generate PDF',
     pdfGenerating: 'Generating... {current}/{total}',
     pdfDone: 'PDF generated successfully! ({count} pages)',
