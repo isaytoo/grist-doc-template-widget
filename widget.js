@@ -3400,32 +3400,21 @@ function splitHtmlIntoPageSections(html) {
         sections.push({ html: '', isPageBreak: true });
         continue;
       }
-
-      // Group small elements together, but keep tables and large blocks separate
-      if (tagName === 'table' || tagName === 'h1' || tagName === 'h2' || tagName === 'h3' || tagName === 'h4') {
-        // Push accumulated content first
-        if (currentHtml.trim()) {
-          sections.push({ html: currentHtml, isPageBreak: false });
-          currentHtml = '';
-        }
-        // Push this block element as its own section
-        sections.push({ html: node.outerHTML, isPageBreak: false });
-        continue;
-      }
     }
 
-    // Accumulate content (paragraphs, text, inline elements)
+    // Accumulate ALL content together (don't separate tables/headings)
+    // This preserves natural spacing between elements
     if (node.nodeType === 1) {
       currentHtml += node.outerHTML;
     } else if (node.nodeType === 3 && node.textContent.trim()) {
       currentHtml += node.textContent;
     }
 
-    // Flush accumulated content every few paragraphs to keep blocks manageable
+    // Only flush when we have a LOT of content (to handle very long documents)
     var tempCheck = document.createElement('div');
     tempCheck.innerHTML = currentHtml;
-    var pCount = tempCheck.querySelectorAll('p, li, blockquote, div').length;
-    if (pCount >= 5) {
+    var blockCount = tempCheck.querySelectorAll('p, li, blockquote, div, table, h1, h2, h3, h4, h5, h6').length;
+    if (blockCount >= 15) {
       sections.push({ html: currentHtml, isPageBreak: false });
       currentHtml = '';
     }
