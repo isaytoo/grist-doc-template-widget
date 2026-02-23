@@ -3418,6 +3418,7 @@ function splitHtmlIntoPageSections(html) {
 
   var sections = [];
   var currentHtml = '';
+  var hasExplicitPageBreak = false;
 
   var children = container.childNodes;
   for (var i = 0; i < children.length; i++) {
@@ -3440,36 +3441,17 @@ function splitHtmlIntoPageSections(html) {
           currentHtml = '';
         }
         sections.push({ html: '', isPageBreak: true });
-        continue;
-      }
-
-      // Tables should be their own section to avoid being cut
-      if (tagName === 'table') {
-        // Push accumulated content first
-        if (currentHtml.trim()) {
-          sections.push({ html: currentHtml, isPageBreak: false });
-          currentHtml = '';
-        }
-        // Push table as its own section (won't be cut)
-        sections.push({ html: node.outerHTML, isPageBreak: false, isTable: true });
+        hasExplicitPageBreak = true;
         continue;
       }
     }
 
-    // Accumulate other content
+    // Accumulate ALL content (including tables) as one block
+    // This prevents unnecessary page breaks
     if (node.nodeType === 1) {
       currentHtml += node.outerHTML;
     } else if (node.nodeType === 3 && node.textContent.trim()) {
       currentHtml += node.textContent;
-    }
-
-    // Flush when we have enough content (to handle very long documents)
-    var tempCheck = document.createElement('div');
-    tempCheck.innerHTML = currentHtml;
-    var blockCount = tempCheck.querySelectorAll('p, li, blockquote, div, h1, h2, h3, h4, h5, h6').length;
-    if (blockCount >= 10) {
-      sections.push({ html: currentHtml, isPageBreak: false });
-      currentHtml = '';
     }
   }
 
