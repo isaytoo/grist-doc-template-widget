@@ -3232,7 +3232,7 @@ async function renderHtmlToPdfPages(html, pdf, pageWidth, pageHeight, pageSize) 
 
     // Render this block to canvas
     var tempDiv = document.createElement('div');
-    tempDiv.style.cssText = baseCss + 'padding-top:20px;padding-bottom:20px;';
+    tempDiv.style.cssText = baseCss;
     tempDiv.innerHTML = section.html;
     
     // Pre-style tables and cells before appending to DOM
@@ -3390,8 +3390,11 @@ async function renderHtmlToPdfPages(html, pdf, pageWidth, pageHeight, pageSize) 
     }
     // Block doesn't fit on current page but fits on a fresh page
     else {
-      pdf.addPage();
-      currentY = margin;
+      // Only add a new page if we're not already at the top of a page
+      if (!isFirstOnPage) {
+        pdf.addPage();
+        currentY = margin;
+      }
       var imgData2 = canvas.toDataURL('image/jpeg', 0.95);
       pdf.addImage(imgData2, 'JPEG', margin, currentY, imgWidth, blockImgHeight);
       currentY += blockImgHeight;
