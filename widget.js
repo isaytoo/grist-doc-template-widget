@@ -3358,54 +3358,35 @@ async function renderHtmlToPdfPages(html, pdf, pageWidth, pageHeight, pageSize) 
 
     var blockImgHeight = (canvas.height * imgWidth) / canvas.width;
 
-    // If block fits on current page
-    if (currentY + blockImgHeight <= pageHeight - margin) {
+    // Scale down if content is too tall - fit to available height
+    var scaledHeight = blockImgHeight;
+    var scaledWidth = imgWidth;
+    if (blockImgHeight > availableHeight) {
+      // Scale to fit on one page
+      var scale = availableHeight / blockImgHeight;
+      scaledHeight = availableHeight;
+      scaledWidth = imgWidth * scale;
+    }
+
+    // If block fits on current page (after scaling)
+    if (currentY + scaledHeight <= pageHeight - margin) {
       var imgData = canvas.toDataURL('image/jpeg', 0.95);
-      pdf.addImage(imgData, 'JPEG', margin, currentY, imgWidth, blockImgHeight);
-      currentY += blockImgHeight;
+      // Center horizontally if scaled down
+      var xOffset = margin + (imgWidth - scaledWidth) / 2;
+      pdf.addImage(imgData, 'JPEG', xOffset, currentY, scaledWidth, scaledHeight);
+      currentY += scaledHeight;
       isFirstOnPage = false;
     }
-    // If block is too tall for any single page, split it (fallback)
-    else if (blockImgHeight > availableHeight) {
-      if (!isFirstOnPage) {
-        pdf.addPage();
-        currentY = margin;
-      }
-      // Crop the big block across pages
-      var yOffset = 0;
-      while (yOffset < blockImgHeight) {
-        if (yOffset > 0) {
-          pdf.addPage();
-          currentY = margin;
-        }
-        var remainH = Math.min(availableHeight, blockImgHeight - yOffset);
-        var sourceY = (yOffset / blockImgHeight) * canvas.height;
-        var sourceH = (remainH / blockImgHeight) * canvas.height;
-
-        var cropCanvas = document.createElement('canvas');
-        cropCanvas.width = canvas.width;
-        cropCanvas.height = Math.ceil(sourceH);
-        var ctx = cropCanvas.getContext('2d');
-        ctx.drawImage(canvas, 0, sourceY, canvas.width, sourceH, 0, 0, canvas.width, Math.ceil(sourceH));
-
-        var cropImgData = cropCanvas.toDataURL('image/jpeg', 0.95);
-        pdf.addImage(cropImgData, 'JPEG', margin, margin, imgWidth, remainH);
-
-        yOffset += availableHeight;
-      }
-      currentY = margin + (blockImgHeight % availableHeight || availableHeight);
-      isFirstOnPage = false;
-    }
-    // Block doesn't fit on current page but fits on a fresh page
+    // Block doesn't fit on current page - go to next page
     else {
-      // Only add a new page if we're not already at the top of a page
       if (!isFirstOnPage) {
         pdf.addPage();
         currentY = margin;
       }
       var imgData2 = canvas.toDataURL('image/jpeg', 0.95);
-      pdf.addImage(imgData2, 'JPEG', margin, currentY, imgWidth, blockImgHeight);
-      currentY += blockImgHeight;
+      var xOffset2 = margin + (imgWidth - scaledWidth) / 2;
+      pdf.addImage(imgData2, 'JPEG', xOffset2, currentY, scaledWidth, scaledHeight);
+      currentY += scaledHeight;
       isFirstOnPage = false;
     }
   }
