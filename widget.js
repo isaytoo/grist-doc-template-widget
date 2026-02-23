@@ -2108,11 +2108,20 @@ function getRecordAt(index) {
 // LOOP PROCESSING - {{#each Column=Value}}...{{/each}}
 // =============================================================================
 
+// Sync bool format between preview and PDF selectors
+function syncBoolFormat(value) {
+  var pdfSelect = document.getElementById('bool-format');
+  var previewSelect = document.getElementById('bool-format-preview');
+  if (pdfSelect) pdfSelect.value = value;
+  if (previewSelect) previewSelect.value = value;
+}
+
 function formatValueForDisplay(value) {
   if (value === null || value === undefined || value === '') return '';
   
   // Handle booleans - convert to readable format or checkbox
-  var boolFormatSelect = document.getElementById('bool-format');
+  // Check both selectors (preview and PDF tab)
+  var boolFormatSelect = document.getElementById('bool-format') || document.getElementById('bool-format-preview');
   var useCheckbox = boolFormatSelect && boolFormatSelect.value === 'checkbox';
   
   if (value === true || value === 'true') {
