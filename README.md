@@ -22,7 +22,7 @@ Widget personnalisé Grist pour créer des documents avec des variables de champ
 ### Installation
 
 1. Dans Grist, ajoutez un widget **Personnalisé**
-2. URL : `https://isaytoo.github.io/grist-doc-template-widget/`
+2. URL : `https://grist-doc-template-widget.vercel.app/`
 3. Niveau d'accès : **Accès complet au document**
 
 ### Utilisation
@@ -52,7 +52,7 @@ Custom Grist widget to create documents with field variables, preview mail merge
 ### Installation
 
 1. In Grist, add a **Custom** widget
-2. URL: `https://isaytoo.github.io/grist-doc-template-widget/`
+2. URL: `https://grist-doc-template-widget.vercel.app/`
 3. Access level: **Full document access**
 
 ### Usage
