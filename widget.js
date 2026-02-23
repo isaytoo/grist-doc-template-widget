@@ -76,7 +76,10 @@ var i18n = {
     tableLoopBtn: 'Tableau avec boucle',
     tableLoopHint: 'Insérer un tableau qui répète les lignes filtrées',
     tableLoopInserted: 'Tableau avec boucle inséré',
-    importBtn: 'Importer .docx'
+    importBtn: 'Importer .docx',
+    boolFormat: 'Cases à cocher :',
+    boolFormatText: 'Oui / Non',
+    boolFormatCheckbox: '☑ / ☐'
   },
   en: {
     title: 'Document Template',
@@ -107,6 +110,9 @@ var i18n = {
     pdfModeAll: 'All records (1 PDF)',
     pdfModeCurrent: 'Current record only',
     pdfPageSize: 'Page size:',
+    boolFormat: 'Checkboxes:',
+    boolFormatText: 'Yes / No',
+    boolFormatCheckbox: '☑ / ☐',
     pdfGenerate: 'Generate PDF',
     pdfGenerating: 'Generating... {current}/{total}',
     pdfDone: 'PDF generated successfully! ({count} pages)',
@@ -2105,12 +2111,15 @@ function getRecordAt(index) {
 function formatValueForDisplay(value) {
   if (value === null || value === undefined || value === '') return '';
   
-  // Handle booleans - convert to readable format
+  // Handle booleans - convert to readable format or checkbox
+  var boolFormatSelect = document.getElementById('bool-format');
+  var useCheckbox = boolFormatSelect && boolFormatSelect.value === 'checkbox';
+  
   if (value === true || value === 'true') {
-    return currentLang === 'fr' ? 'Oui' : 'Yes';
+    return useCheckbox ? '☑' : (currentLang === 'fr' ? 'Oui' : 'Yes');
   }
   if (value === false || value === 'false') {
-    return currentLang === 'fr' ? 'Non' : 'No';
+    return useCheckbox ? '☐' : (currentLang === 'fr' ? 'Non' : 'No');
   }
   
   var str = String(value);
