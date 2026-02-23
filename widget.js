@@ -3039,73 +3039,10 @@ function splitPreviewIntoPages(html) {
   }, []);
   parts = parts.filter(function(p) { return p.trim().length > 0; });
 
-  // For preview, measure the actual content height against A4 page height
-  // A4 = 1123px total, with ~80px padding = ~1043px usable content area
-  var pageHeight = 1040; // Usable height in pixels for A4
-  var pageWidth = 674; // 794px - 120px padding (60px each side)
-  var finalPages = [];
-
-  parts.forEach(function(partHtml) {
-    // Measure the entire part's height first
-    var measureDiv = document.createElement('div');
-    measureDiv.style.cssText = 'position:absolute;left:-9999px;top:0;width:' + pageWidth + 'px;padding:40px 60px;font-family:"Times New Roman",Times,serif;font-size:14px;line-height:1.6;background:white;';
-    measureDiv.innerHTML = partHtml;
-    document.body.appendChild(measureDiv);
-    var totalHeight = measureDiv.offsetHeight;
-    document.body.removeChild(measureDiv);
-    
-    // If content fits on one page, no need to split
-    if (totalHeight <= pageHeight) {
-      finalPages.push(partHtml);
-      return;
-    }
-    
-    // Content exceeds one page - need to split by elements
-    var container = document.createElement('div');
-    container.innerHTML = partHtml;
-    
-    var currentPageHtml = '';
-    var currentHeight = 0;
-    
-    var children = Array.from(container.childNodes);
-    
-    for (var i = 0; i < children.length; i++) {
-      var node = children[i];
-      if (node.nodeType !== 1 && node.nodeType !== 3) continue;
-      
-      var nodeHtml = node.nodeType === 1 ? node.outerHTML : node.textContent;
-      if (!nodeHtml.trim()) continue;
-      
-      // Measure this node's height
-      var nodeMeasure = document.createElement('div');
-      nodeMeasure.style.cssText = 'position:absolute;left:-9999px;top:0;width:' + pageWidth + 'px;padding:0;font-family:"Times New Roman",Times,serif;font-size:14px;line-height:1.6;';
-      nodeMeasure.innerHTML = nodeHtml;
-      document.body.appendChild(nodeMeasure);
-      var nodeHeight = nodeMeasure.offsetHeight;
-      document.body.removeChild(nodeMeasure);
-      
-      var isTable = node.nodeType === 1 && node.tagName && node.tagName.toLowerCase() === 'table';
-      
-      // If adding this node would exceed page height
-      if (currentHeight + nodeHeight > pageHeight && currentPageHtml.trim()) {
-        // Start new page
-        finalPages.push(currentPageHtml);
-        currentPageHtml = nodeHtml;
-        currentHeight = nodeHeight;
-      } else {
-        // Add to current page
-        currentPageHtml += nodeHtml;
-        currentHeight += nodeHeight;
-      }
-    }
-    
-    // Push remaining content
-    if (currentPageHtml.trim()) {
-      finalPages.push(currentPageHtml);
-    }
-  });
-
-  return finalPages.length > 0 ? finalPages : [html];
+  // Preview shows content as-is (no automatic height-based pagination)
+  // The PDF generation handles pagination correctly
+  // Preview only splits on explicit page-break markers
+  return parts;
 }
 
 function prevRecord() {
