@@ -761,7 +761,7 @@
             🔄 <span data-i18n="refreshFilters">Actualiser</span>
           </button>
           <div class="toolbar-sep"></div>
-          <select id="bool-format-preview" onchange="syncBoolFormat(this.value); updatePreview();" style="padding: 4px 8px; border-radius: 4px; border: 1px solid #e2e8f0; font-size: 12px;">
+          <select id="bool-format-preview" onchange="syncBoolFormat(this.value); renderPreview();" style="padding: 4px 8px; border-radius: 4px; border: 1px solid #e2e8f0; font-size: 12px;">
             <option value="text" data-i18n="boolFormatText">Oui / Non</option>
             <option value="checkbox" data-i18n="boolFormatCheckbox">☑ / ☐</option>
           </select>
