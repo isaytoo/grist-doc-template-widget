@@ -3027,20 +3027,92 @@ function renderPreview() {
 }
 
 function splitPreviewIntoPages(html) {
-  // Split on page-break-marker divs
+  // First split on explicit page-break markers
   var parts = html.split(/<div[^>]*class="page-break-marker"[^>]*>[\s\S]*?<\/div>/g);
-  // Also split on invisible page-break divs
   parts = parts.reduce(function(acc, part) {
     var subParts = part.split(/<div[^>]*style="[^"]*page-break-after:\s*always[^"]*"[^>]*>\s*<\/div>/g);
     return acc.concat(subParts);
   }, []);
-  // Also split on hr with page-break
   parts = parts.reduce(function(acc, part) {
     var subParts = part.split(/<hr[^>]*style="[^"]*page-break[^"]*"[^>]*\/?>/g);
     return acc.concat(subParts);
   }, []);
-  // Filter out empty pages
-  return parts.filter(function(p) { return p.trim().length > 0; });
+  parts = parts.filter(function(p) { return p.trim().length > 0; });
+
+  // Now split each part based on content height (A4 = 1123px with 80px padding = ~1043px usable)
+  var pageHeight = 1043; // Usable height in pixels for A4
+  var finalPages = [];
+
+  parts.forEach(function(partHtml) {
+    // Create temp container to measure
+    var container = document.createElement('div');
+    container.innerHTML = partHtml;
+    
+    var currentPageHtml = '';
+    var currentHeight = 0;
+    
+    var children = Array.from(container.childNodes);
+    
+    for (var i = 0; i < children.length; i++) {
+      var node = children[i];
+      if (node.nodeType !== 1 && node.nodeType !== 3) continue;
+      
+      var nodeHtml = node.nodeType === 1 ? node.outerHTML : node.textContent;
+      if (!nodeHtml.trim()) continue;
+      
+      // Measure this node's height
+      var measureDiv = document.createElement('div');
+      measureDiv.style.cssText = 'position:absolute;left:-9999px;top:0;width:674px;padding:0 60px;font-family:"Times New Roman",Times,serif;font-size:14px;line-height:1.6;';
+      measureDiv.innerHTML = nodeHtml;
+      document.body.appendChild(measureDiv);
+      var nodeHeight = measureDiv.offsetHeight;
+      document.body.removeChild(measureDiv);
+      
+      var isTable = node.nodeType === 1 && node.tagName && node.tagName.toLowerCase() === 'table';
+      
+      // If this node alone exceeds page height, it goes on its own page(s)
+      if (nodeHeight > pageHeight) {
+        // Push current accumulated content first
+        if (currentPageHtml.trim()) {
+          finalPages.push(currentPageHtml);
+          currentPageHtml = '';
+          currentHeight = 0;
+        }
+        // This large element gets its own page
+        finalPages.push(nodeHtml);
+        continue;
+      }
+      
+      // If adding this node would exceed page height
+      if (currentHeight + nodeHeight > pageHeight) {
+        // For tables: move entire table to next page
+        if (isTable && currentPageHtml.trim()) {
+          finalPages.push(currentPageHtml);
+          currentPageHtml = nodeHtml;
+          currentHeight = nodeHeight;
+        } else if (currentPageHtml.trim()) {
+          // Start new page
+          finalPages.push(currentPageHtml);
+          currentPageHtml = nodeHtml;
+          currentHeight = nodeHeight;
+        } else {
+          currentPageHtml = nodeHtml;
+          currentHeight = nodeHeight;
+        }
+      } else {
+        // Add to current page
+        currentPageHtml += nodeHtml;
+        currentHeight += nodeHeight;
+      }
+    }
+    
+    // Push remaining content
+    if (currentPageHtml.trim()) {
+      finalPages.push(currentPageHtml);
+    }
+  });
+
+  return finalPages.length > 0 ? finalPages : [html];
 }
 
 function prevRecord() {
