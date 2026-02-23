@@ -2362,7 +2362,7 @@ function executeLoopFromView(viewId, loopContent, forPdf) {
       var styledRegex = new RegExp('<span[^>]*>\\{\\{' + escapeRegex(col) + '\\}\\}</span>', 'g');
       if (display) {
         if (forPdf) {
-          rowHtml = rowHtml.replace(styledRegex, '<strong>' + sanitize(display) + '</strong>');
+          rowHtml = rowHtml.replace(styledRegex, sanitize(display));
         } else {
           rowHtml = rowHtml.replace(styledRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
         }
@@ -2374,7 +2374,7 @@ function executeLoopFromView(viewId, loopContent, forPdf) {
       var plainRegex = new RegExp('\\{\\{' + escapeRegex(col) + '\\}\\}', 'g');
       if (display) {
         if (forPdf) {
-          rowHtml = rowHtml.replace(plainRegex, '<strong>' + sanitize(display) + '</strong>');
+          rowHtml = rowHtml.replace(plainRegex, sanitize(display));
         } else {
           rowHtml = rowHtml.replace(plainRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
         }
@@ -2460,7 +2460,7 @@ async function executeLoopLinkedTableAsync(linkedTableName, refColumn, loopConte
         var styledRegex = new RegExp('<span[^>]*>\\{\\{' + escapeRegex(col) + '\\}\\}</span>', 'g');
         if (display) {
           if (forPdf) {
-            rowHtml = rowHtml.replace(styledRegex, '<strong>' + sanitize(display) + '</strong>');
+            rowHtml = rowHtml.replace(styledRegex, sanitize(display));
           } else {
             rowHtml = rowHtml.replace(styledRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
           }
@@ -2472,7 +2472,7 @@ async function executeLoopLinkedTableAsync(linkedTableName, refColumn, loopConte
         var plainRegex = new RegExp('\\{\\{' + escapeRegex(col) + '\\}\\}', 'g');
         if (display) {
           if (forPdf) {
-            rowHtml = rowHtml.replace(plainRegex, '<strong>' + sanitize(display) + '</strong>');
+            rowHtml = rowHtml.replace(plainRegex, sanitize(display));
           } else {
             rowHtml = rowHtml.replace(plainRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
           }
@@ -2557,7 +2557,7 @@ function executeLoopAllRows(loopContent, forPdf) {
         var styledRegex = new RegExp('<span[^>]*>\\{\\{' + escapeRegex(col) + '\\}\\}</span>', 'g');
         if (display) {
           if (forPdf) {
-            rowHtml = rowHtml.replace(styledRegex, '<strong>' + sanitize(display) + '</strong>');
+            rowHtml = rowHtml.replace(styledRegex, sanitize(display));
           } else {
             rowHtml = rowHtml.replace(styledRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
           }
@@ -2569,7 +2569,7 @@ function executeLoopAllRows(loopContent, forPdf) {
         var plainRegex = new RegExp('\\{\\{' + escapeRegex(col) + '\\}\\}', 'g');
         if (display) {
           if (forPdf) {
-            rowHtml = rowHtml.replace(plainRegex, '<strong>' + sanitize(display) + '</strong>');
+            rowHtml = rowHtml.replace(plainRegex, sanitize(display));
           } else {
             rowHtml = rowHtml.replace(plainRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
           }
@@ -2610,7 +2610,7 @@ function executeLoopAllRows(loopContent, forPdf) {
       var styledRegex = new RegExp('<span[^>]*>\\{\\{' + escapeRegex(col) + '\\}\\}</span>', 'g');
       if (display) {
         if (forPdf) {
-          rowHtml = rowHtml.replace(styledRegex, '<strong>' + sanitize(display) + '</strong>');
+          rowHtml = rowHtml.replace(styledRegex, sanitize(display));
         } else {
           rowHtml = rowHtml.replace(styledRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
         }
@@ -2622,7 +2622,7 @@ function executeLoopAllRows(loopContent, forPdf) {
       var plainRegex = new RegExp('\\{\\{' + escapeRegex(col) + '\\}\\}', 'g');
       if (display) {
         if (forPdf) {
-          rowHtml = rowHtml.replace(plainRegex, '<strong>' + sanitize(display) + '</strong>');
+          rowHtml = rowHtml.replace(plainRegex, sanitize(display));
         } else {
           rowHtml = rowHtml.replace(plainRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
         }
@@ -2728,7 +2728,7 @@ function executeLoop(filterColumn, filterValue, loopContent, forPdf) {
       var styledRegex = new RegExp('<span[^>]*>\\{\\{' + escapeRegex(col) + '\\}\\}</span>', 'g');
       if (display) {
         if (forPdf) {
-          rowHtml = rowHtml.replace(styledRegex, '<strong>' + sanitize(display) + '</strong>');
+          rowHtml = rowHtml.replace(styledRegex, sanitize(display));
         } else {
           rowHtml = rowHtml.replace(styledRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
         }
@@ -2740,7 +2740,7 @@ function executeLoop(filterColumn, filterValue, loopContent, forPdf) {
       var plainRegex = new RegExp('\\{\\{' + escapeRegex(col) + '\\}\\}', 'g');
       if (display) {
         if (forPdf) {
-          rowHtml = rowHtml.replace(plainRegex, '<strong>' + sanitize(display) + '</strong>');
+          rowHtml = rowHtml.replace(plainRegex, sanitize(display));
         } else {
           rowHtml = rowHtml.replace(plainRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
         }
@@ -2768,7 +2768,7 @@ function resolveTemplate(html, record, forPdf) {
     var styledRegex = new RegExp('<span[^>]*>\\{\\{' + escapeRegex(col) + '\\}\\}</span>', 'g');
     if (display) {
       if (forPdf) {
-        resolved = resolved.replace(styledRegex, '<strong>' + sanitize(display) + '</strong>');
+        resolved = resolved.replace(styledRegex, sanitize(display));
       } else {
         resolved = resolved.replace(styledRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
       }
@@ -2783,7 +2783,7 @@ function resolveTemplate(html, record, forPdf) {
     var plainRegex = new RegExp('\\{\\{' + escapeRegex(col) + '\\}\\}', 'g');
     if (display) {
       if (forPdf) {
-        resolved = resolved.replace(plainRegex, '<strong>' + sanitize(display) + '</strong>');
+        resolved = resolved.replace(plainRegex, sanitize(display));
       } else {
         resolved = resolved.replace(plainRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
       }
@@ -3075,19 +3075,103 @@ async function renderHtmlToPdfPages(html, pdf, pageWidth, pageHeight, pageSize) 
     var tempDiv = document.createElement('div');
     tempDiv.style.cssText = baseCss + 'padding-top:20px;padding-bottom:20px;';
     tempDiv.innerHTML = section.html;
+    
+    // Pre-style tables and cells before appending to DOM
+    var tables = tempDiv.querySelectorAll('table');
+    tables.forEach(function(table) {
+      table.style.width = '100%';
+      table.style.borderCollapse = 'collapse';
+      table.style.tableLayout = 'auto';
+      table.style.pageBreakInside = 'avoid';
+    });
+    var cells = tempDiv.querySelectorAll('td, th');
+    cells.forEach(function(cell) {
+      if (!cell.style.border || cell.style.border === 'none') {
+        cell.style.border = '1px solid #000';
+      }
+      if (!cell.style.padding) {
+        cell.style.padding = '4px 8px';
+      }
+    });
+    
+    // Pre-style images
+    var images = tempDiv.querySelectorAll('img');
+    images.forEach(function(img) {
+      img.style.maxWidth = '100%';
+      img.style.height = 'auto';
+      img.crossOrigin = 'anonymous';
+    });
+    
     document.body.appendChild(tempDiv);
 
-    await new Promise(function(resolve) { setTimeout(resolve, 50); });
+    // Wait for all images to load before rendering
+    if (images.length > 0) {
+      await Promise.all(Array.from(images).map(function(img) {
+        return new Promise(function(resolve) {
+          if (img.complete && img.naturalHeight !== 0) {
+            resolve();
+          } else {
+            img.onload = resolve;
+            img.onerror = function() {
+              // On error, try to load as data URL if it's a Grist attachment
+              console.warn('Image failed to load:', img.src);
+              resolve();
+            };
+            // Force reload for CORS
+            var originalSrc = img.src;
+            if (originalSrc && originalSrc.indexOf('data:') !== 0) {
+              img.src = '';
+              img.src = originalSrc;
+            }
+          }
+        });
+      }));
+    }
+
+    // Give extra time for tables and complex layouts to render
+    await new Promise(function(resolve) { setTimeout(resolve, 150); });
 
     var canvas = await html2canvas(tempDiv, {
       scale: 2,
       useCORS: true,
+      allowTaint: true,
       logging: false,
       backgroundColor: '#ffffff',
       scrollX: 0,
       scrollY: 0,
       windowWidth: tempDiv.scrollWidth,
-      windowHeight: tempDiv.scrollHeight
+      windowHeight: tempDiv.scrollHeight,
+      onclone: function(clonedDoc, clonedElement) {
+        // Ensure tables are fully visible in the cloned element
+        var clonedTables = clonedElement.querySelectorAll('table');
+        clonedTables.forEach(function(table) {
+          table.style.width = '100%';
+          table.style.borderCollapse = 'collapse';
+          table.style.tableLayout = 'auto';
+          table.style.display = 'table';
+          table.style.visibility = 'visible';
+        });
+        // Ensure all rows are visible
+        var clonedRows = clonedElement.querySelectorAll('tr');
+        clonedRows.forEach(function(row) {
+          row.style.display = 'table-row';
+          row.style.visibility = 'visible';
+        });
+        // Ensure all cells have proper borders and are visible
+        var clonedCells = clonedElement.querySelectorAll('td, th');
+        clonedCells.forEach(function(cell) {
+          cell.style.border = '1px solid #000';
+          cell.style.padding = '4px 8px';
+          cell.style.display = 'table-cell';
+          cell.style.visibility = 'visible';
+        });
+        // Ensure images are visible
+        var clonedImages = clonedElement.querySelectorAll('img');
+        clonedImages.forEach(function(img) {
+          img.style.maxWidth = '100%';
+          img.style.visibility = 'visible';
+        });
+      }
     });
 
     document.body.removeChild(tempDiv);
