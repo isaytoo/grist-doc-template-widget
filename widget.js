@@ -3434,21 +3434,32 @@ function splitHtmlIntoPageSections(html) {
         sections.push({ html: '', isPageBreak: true });
         continue;
       }
+
+      // Tables should be their own section to avoid being cut
+      if (tagName === 'table') {
+        // Push accumulated content first
+        if (currentHtml.trim()) {
+          sections.push({ html: currentHtml, isPageBreak: false });
+          currentHtml = '';
+        }
+        // Push table as its own section (won't be cut)
+        sections.push({ html: node.outerHTML, isPageBreak: false, isTable: true });
+        continue;
+      }
     }
 
-    // Accumulate ALL content together (don't separate tables/headings)
-    // This preserves natural spacing between elements
+    // Accumulate other content
     if (node.nodeType === 1) {
       currentHtml += node.outerHTML;
     } else if (node.nodeType === 3 && node.textContent.trim()) {
       currentHtml += node.textContent;
     }
 
-    // Only flush when we have a LOT of content (to handle very long documents)
+    // Flush when we have enough content (to handle very long documents)
     var tempCheck = document.createElement('div');
     tempCheck.innerHTML = currentHtml;
-    var blockCount = tempCheck.querySelectorAll('p, li, blockquote, div, table, h1, h2, h3, h4, h5, h6').length;
-    if (blockCount >= 15) {
+    var blockCount = tempCheck.querySelectorAll('p, li, blockquote, div, h1, h2, h3, h4, h5, h6').length;
+    if (blockCount >= 10) {
       sections.push({ html: currentHtml, isPageBreak: false });
       currentHtml = '';
     }
