@@ -2496,6 +2496,7 @@ async function executeLoopLinkedTableAsync(linkedTableName, refColumn, loopConte
 
 function executeLoopLinkedTable(linkedTableName, refColumn, loopContent, forPdf) {
   // Synchronous wrapper - returns placeholder that will be replaced async
+  // For PDF, we need to wait for data - this is handled by processLoopsAsync
   // Get current record ID
   if (!tableData || !tableData.id || tableData.id.length === 0) {
     return '<span style="color:#ef4444;font-style:italic;">[' + (currentLang === 'fr' ? 'Pas d\'enregistrement courant' : 'No current record') + ']</span>';
@@ -2531,6 +2532,144 @@ function executeLoopLinkedTable(linkedTableName, refColumn, loopContent, forPdf)
   
   // Return a placeholder row instead of a span
   return '<tr id="' + placeholderId + '"><td colspan="99" style="color:#6b7280;font-style:italic;text-align:center;">' + (currentLang === 'fr' ? 'Chargement...' : 'Loading...') + '</td></tr>';
+}
+
+// Async version of processLoops for PDF generation - waits for linked table data
+async function processLoopsAsync(html, forPdf) {
+  if (!tableData || !tableColumns.length) return html;
+  
+  var resolved = html;
+  
+  // Process HTML comment-based loops (for tables): <!--LOOP:Column=Value-->...<!--/LOOP-->
+  // Handle TABLE: loops specially - they need async processing
+  var commentLoopRegex = /<!--LOOP:(\*|VIEW:\d+|TABLE:[^:]+:[^-]+|[^=]+=[^-]+)-->([\s\S]*?)<!--\/LOOP-->/gi;
+  
+  // Collect all matches first
+  var matches = [];
+  var match;
+  var tempHtml = resolved;
+  var regex = new RegExp(commentLoopRegex.source, 'gi');
+  while ((match = regex.exec(tempHtml)) !== null) {
+    matches.push({
+      fullMatch: match[0],
+      loopSpec: match[1],
+      loopContent: match[2],
+      index: match.index
+    });
+  }
+  
+  // Process matches in reverse order to preserve indices
+  for (var i = matches.length - 1; i >= 0; i--) {
+    var m = matches[i];
+    var replacement;
+    
+    if (m.loopSpec === '*') {
+      replacement = executeLoopAllRows(m.loopContent, forPdf);
+    } else if (m.loopSpec.startsWith('VIEW:')) {
+      var viewId = m.loopSpec.substring(5);
+      replacement = executeLoopFromView(viewId, m.loopContent, forPdf);
+    } else if (m.loopSpec.startsWith('TABLE:')) {
+      // Linked table: TABLE:tableName:refColumn - AWAIT the async function
+      var tableParts = m.loopSpec.substring(6).split(':');
+      var linkedTableName = tableParts[0].trim();
+      var refColumn = tableParts[1].trim();
+      
+      // Get current record ID
+      var currentRecordId = tableData.id[currentRecordIndex];
+      // Await the async function directly for PDF
+      replacement = await executeLoopLinkedTableAsync(linkedTableName, refColumn, m.loopContent, forPdf, currentRecordId);
+    } else {
+      // Filtered: parse Column=Value
+      var parts = m.loopSpec.split('=');
+      var filterCol = parts[0].trim();
+      var filterVal = parts.slice(1).join('=').trim();
+      replacement = executeLoop(filterCol, filterVal, m.loopContent, forPdf);
+    }
+    
+    resolved = resolved.substring(0, m.index) + replacement + resolved.substring(m.index + m.fullMatch.length);
+  }
+  
+  // Process other loop types (same as sync version)
+  // Special case: handle loops inside table rows
+  var tableLoopRegex = /<tr[^>]*>([^]*?)<td[^>]*>([^<]*\{\{#each\s+([^=}]+)=([^}]+)\}\}[^<]*)<\/td>([^]*?)<\/tr>([^]*?)<tr[^>]*>([^]*?)<\/tr>([^]*?)<tr[^>]*>([^]*?)<td[^>]*>([^<]*\{\{\/each\}\}[^<]*)<\/td>([^]*?)<\/tr>/gi;
+  
+  resolved = resolved.replace(tableLoopRegex, function(match, before1, eachCell, filterCol, filterVal, after1, between, rowContent, after2, before3, endCell, after3) {
+    var templateRow = '<tr>' + rowContent + '</tr>';
+    var result = executeLoop(filterCol.trim(), filterVal.trim(), templateRow, forPdf);
+    return result;
+  });
+  
+  // Simpler table loop
+  var simpleTableLoopRegex = /<tr[^>]*>\s*<td[^>]*>\s*\{\{#each\s+([^=}]+)=([^}]+)\}\}\s*<\/td>\s*<\/tr>\s*(<tr[^>]*>[\s\S]*?<\/tr>)\s*<tr[^>]*>\s*<td[^>]*>\s*\{\{\/each\}\}\s*<\/td>\s*<\/tr>/gi;
+  
+  resolved = resolved.replace(simpleTableLoopRegex, function(match, filterCol, filterVal, templateRows) {
+    return executeLoop(filterCol.trim(), filterVal.trim(), templateRows, forPdf);
+  });
+  
+  // Regex to match {{#each Column=Value}}...{{/each}}
+  var loopRegex = /\{\{#each\s+([^=}]+)=([^}]+)\}\}([\s\S]*?)\{\{\/each\}\}/g;
+  var styledLoopRegex = /<span[^>]*>\{\{#each\s+([^=}]+)=([^}]+)\}\}<\/span>([\s\S]*?)<span[^>]*>\{\{\/each\}\}<\/span>/g;
+  
+  resolved = resolved.replace(styledLoopRegex, function(match, filterCol, filterVal, loopContent) {
+    return executeLoop(filterCol.trim(), filterVal.trim(), loopContent, forPdf);
+  });
+  
+  resolved = resolved.replace(loopRegex, function(match, filterCol, filterVal, loopContent) {
+    return executeLoop(filterCol.trim(), filterVal.trim(), loopContent, forPdf);
+  });
+  
+  return resolved;
+}
+
+// Async version of resolveTemplate for PDF generation
+async function resolveTemplateAsync(html, record, forPdf) {
+  var resolved = html;
+  
+  // Process loops with async support for linked tables
+  resolved = await processLoopsAsync(resolved, forPdf);
+  
+  for (var col in record) {
+    var val = record[col];
+    var display = formatValueForDisplay(val);
+    var styledRegex = new RegExp('<span[^>]*>\\{\\{' + escapeRegex(col) + '\\}\\}</span>', 'g');
+    if (display) {
+      if (forPdf) {
+        resolved = resolved.replace(styledRegex, sanitize(display));
+      } else {
+        resolved = resolved.replace(styledRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
+      }
+    } else {
+      if (forPdf) {
+        resolved = resolved.replace(styledRegex, '<em>[' + col + ']</em>');
+      } else {
+        resolved = resolved.replace(styledRegex, '<span class="var-empty">[' + col + ': vide]</span>');
+      }
+    }
+    var plainRegex = new RegExp('\\{\\{' + escapeRegex(col) + '\\}\\}', 'g');
+    if (display) {
+      if (forPdf) {
+        resolved = resolved.replace(plainRegex, sanitize(display));
+      } else {
+        resolved = resolved.replace(plainRegex, '<span class="var-resolved">' + sanitize(display) + '</span>');
+      }
+    } else {
+      if (forPdf) {
+        resolved = resolved.replace(plainRegex, '<em>[' + col + ']</em>');
+      } else {
+        resolved = resolved.replace(plainRegex, '<span class="var-empty">[' + col + ': vide]</span>');
+      }
+    }
+  }
+  
+  if (forPdf) {
+    resolved = resolved.replace(/<div[^>]*class="page-break-marker"[^>]*>[\s\S]*?<\/div>/g, '<div style="page-break-after:always;"></div>');
+    resolved = resolved.replace(/background-color:\s*rgb\(243,\s*232,\s*255\);?/g, '');
+    resolved = resolved.replace(/background-color:\s*#f3e8ff;?/g, '');
+    resolved = resolved.replace(/color:\s*rgb\(124,\s*58,\s*237\);?/g, '');
+    resolved = resolved.replace(/color:\s*#7c3aed;?/g, '');
+    resolved = resolved.replace(/<table(?![^>]*style=)/g, '<table style="border-collapse:collapse;"');
+  }
+  return resolved;
 }
 
 function executeLoopAllRows(loopContent, forPdf) {
@@ -2917,7 +3056,8 @@ async function generateSinglePdf() {
   }
 
   var record = getRecordAt(currentRecordIndex);
-  var resolved = resolveTemplate(templateHtml, record, true);
+  // Use async version to wait for linked table data
+  var resolved = await resolveTemplateAsync(templateHtml, record, true);
   await generatePdfFromHtml(resolved, 'document_' + (currentRecordIndex + 1) + '.pdf');
 }
 
@@ -2983,7 +3123,8 @@ async function generatePdf() {
         t('pdfGenerating').replace('{current}', i - startIdx + 1).replace('{total}', totalPages) + '</div>';
 
       var record = getRecordAt(i);
-      var resolved = resolveTemplate(templateHtml, record, true);
+      // Use async version to wait for linked table data
+      var resolved = await resolveTemplateAsync(templateHtml, record, true);
 
       // Render using block-aware page breaking
       if (i > startIdx) {
