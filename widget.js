@@ -3357,38 +3357,23 @@ async function renderHtmlToPdfPages(html, pdf, pageWidth, pageHeight, pageSize) 
     document.body.removeChild(tempDiv);
 
     var blockImgHeight = (canvas.height * imgWidth) / canvas.width;
+    var imgData = canvas.toDataURL('image/jpeg', 0.95);
 
     // If block fits on current page - render at full size
     if (currentY + blockImgHeight <= pageHeight - margin) {
-      var imgData = canvas.toDataURL('image/jpeg', 0.95);
       pdf.addImage(imgData, 'JPEG', margin, currentY, imgWidth, blockImgHeight);
       currentY += blockImgHeight;
       isFirstOnPage = false;
     }
-    // Block doesn't fit on current page
+    // Block doesn't fit on current page - go to next page
     else {
-      // Go to next page if not already at top
       if (!isFirstOnPage) {
         pdf.addPage();
         currentY = margin;
       }
-      
-      // If content fits on a fresh page, render at full size
-      if (blockImgHeight <= availableHeight) {
-        var imgData2 = canvas.toDataURL('image/jpeg', 0.95);
-        pdf.addImage(imgData2, 'JPEG', margin, currentY, imgWidth, blockImgHeight);
-        currentY += blockImgHeight;
-      }
-      // Content is too tall even for a full page - scale to fit
-      else {
-        var scale = availableHeight / blockImgHeight;
-        var scaledHeight = availableHeight;
-        var scaledWidth = imgWidth * scale;
-        var xOffset = margin + (imgWidth - scaledWidth) / 2;
-        var imgData3 = canvas.toDataURL('image/jpeg', 0.95);
-        pdf.addImage(imgData3, 'JPEG', xOffset, currentY, scaledWidth, scaledHeight);
-        currentY += scaledHeight;
-      }
+      // Render at full width, let it overflow if needed (will be cropped by PDF)
+      pdf.addImage(imgData, 'JPEG', margin, currentY, imgWidth, blockImgHeight);
+      currentY += blockImgHeight;
       isFirstOnPage = false;
     }
   }
