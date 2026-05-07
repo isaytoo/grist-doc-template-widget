@@ -750,6 +750,71 @@
       width: 18px;
       height: 18px;
     }
+
+    /* ========== DARK MODE OVERRIDES ==========
+       The Jodit editor ships with a hardcoded light theme. The .jodit-wysiwyg
+       writing surface is intentionally kept paper-white (it represents the PDF
+       output), but everything around it (toolbars, popups, status bar, custom
+       text-only buttons) needs explicit dark-mode styling to stay readable. */
+    @media (prefers-color-scheme: dark) {
+      /* Tabs — boost contrast on the slate-900 surface */
+      .tabs { background: var(--bg-surface); }
+      .tab-btn { color: var(--text-secondary); }
+      .tab-btn:hover { color: #c4b5fd; }
+      .tab-btn.active { color: #c4b5fd; border-bottom-color: #c4b5fd; }
+
+      /* Jodit toolbar background + borders */
+      .jodit-toolbar__box,
+      .jodit-toolbar-editor-collection,
+      .jodit-status-bar,
+      .jodit-popup__content,
+      .jodit-toolbar-button__trigger {
+        background: var(--bg-surface) !important;
+        color: var(--text-primary) !important;
+        border-color: var(--border) !important;
+      }
+      .jodit-toolbar-button:hover,
+      .jodit-toolbar-button__button:hover,
+      .jodit-toolbar-button__trigger:hover {
+        background: var(--bg-hover) !important;
+      }
+
+      /* Native Jodit icons are dark SVG; invert them so they read on dark bg */
+      .jodit-toolbar-button__icon svg,
+      .jodit-icon svg {
+        filter: invert(0.85) hue-rotate(180deg) !important;
+      }
+
+      /* Custom text-only buttons (insertparagraph, tablelayout, nestedtable,
+         columnwidth, cellborder, tableborder, verticaltext, pagebreak) — make
+         their label visible. */
+      .jodit-toolbar-button__button {
+        color: var(--text-primary) !important;
+      }
+
+      /* Popup menus, dropdowns, color pickers */
+      .jodit-popup,
+      .jodit-popup__content,
+      .jodit-ui-list,
+      .jodit-ui-button,
+      .jodit-toolbar-collection {
+        background: var(--bg-surface) !important;
+        color: var(--text-primary) !important;
+        border-color: var(--border) !important;
+      }
+      .jodit-ui-button:hover { background: var(--bg-hover) !important; }
+
+      /* Status bar */
+      .jodit-status-bar { color: var(--text-muted) !important; }
+
+      /* The .jodit-wysiwyg editing surface STAYS white on purpose — it's the
+         "paper" view that mirrors the printed PDF. We only force the body
+         color to black so user content keeps its document look. */
+      .jodit-wysiwyg {
+        background: #ffffff !important;
+        color: #1e293b !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1020,7 +1085,7 @@
     </div>
   </div>
 
-  <script src="widget.js?v=1"></script>
+  <script src="widget.js?v=2"></script>
   <footer style="position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-body); border-top: 1px solid var(--border); padding: 4px 12px; font-size: 0.7em; color: var(--text-subtle); display: flex; justify-content: space-between; z-index: 1000;">
     <span>© 2026 Said Hamadou (isaytoo)</span>
     <a href="https://gristup.fr" target="_blank" style="color: #3b82f6; text-decoration: none;">gristup.fr</a>
