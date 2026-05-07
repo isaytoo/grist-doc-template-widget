@@ -9,9 +9,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
   <title>Document Template - Mail Merge</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
@@ -24,43 +21,13 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
-    /* ========== THEME VARIABLES ==========
-       Light mode by default. The @media (prefers-color-scheme: dark) override
-       below flips the palette automatically when the OS / Grist theme is dark.
-       Brand purple and semantic colors (success/warning/danger) are kept fixed
-       since they read fine on both backgrounds. */
-    :root {
-      --bg-body: var(--bg-body);
-      --bg-surface: #ffffff;
-      --bg-hover: var(--bg-hover);
-      --text-primary: var(--text-primary);
-      --text-secondary: var(--text-secondary);
-      --text-muted: var(--text-muted);
-      --text-subtle: var(--text-subtle);
-      --border: var(--border);
-      --border-strong: var(--border-strong);
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg-body: #0f172a;
-        --bg-surface: var(--text-primary);
-        --bg-hover: #334155;
-        --text-primary: var(--bg-hover);
-        --text-secondary: var(--border-strong);
-        --text-muted: var(--text-subtle);
-        --text-subtle: var(--text-muted);
-        --border: #334155;
-        --border-strong: var(--text-secondary);
-      }
-    }
-
     /* ========== RESET & BASE ========== */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 13px;
-      color: var(--text-primary);
-      background: var(--bg-body);
+      color: #1e293b;
+      background: #f8fafc;
       padding: 0;
       overflow-x: hidden;
     }
@@ -90,13 +57,13 @@
       font-size: 11px;
       font-weight: 600;
     }
-    .lang-btn.active { background: var(--bg-surface); color: #7c3aed; }
+    .lang-btn.active { background: white; color: #7c3aed; }
 
     /* ========== TABS ========== */
     .tabs {
       display: flex;
-      background: var(--bg-surface);
-      border-bottom: 2px solid var(--border);
+      background: white;
+      border-bottom: 2px solid #e2e8f0;
       padding: 0 12px;
       position: sticky;
       top: 39px;
@@ -109,7 +76,7 @@
       cursor: pointer;
       font-size: 12px;
       font-weight: 600;
-      color: var(--text-muted);
+      color: #64748b;
       border-bottom: 2px solid transparent;
       margin-bottom: -2px;
       transition: all 0.2s;
@@ -121,7 +88,7 @@
     .tabs-separator {
       width: 1px;
       height: 24px;
-      background: var(--border);
+      background: #e2e8f0;
       margin: 0 12px;
       align-self: center;
     }
@@ -133,15 +100,15 @@
     .tabs-table-selector label {
       font-weight: 600;
       font-size: 12px;
-      color: var(--text-secondary);
+      color: #475569;
       white-space: nowrap;
     }
     .tabs-table-selector select {
       padding: 5px 10px;
-      border: 1px solid var(--border);
+      border: 1px solid #e2e8f0;
       border-radius: 6px;
       font-size: 12px;
-      background: var(--bg-surface);
+      background: white;
       min-width: 140px;
       max-width: 250px;
       text-overflow: ellipsis;
@@ -160,9 +127,9 @@
       left: 0;
       right: 0;
       z-index: 98;
-      background: var(--bg-body);
+      background: #f8fafc;
       padding: 8px 12px;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid #e2e8f0;
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
       display: none; /* Hidden by default, shown via JS for editor tab */
     }
@@ -174,10 +141,10 @@
       left: 0;
       right: 0;
       z-index: 98;
-      background: var(--bg-body);
+      background: #f8fafc;
       display: none; /* Hidden by default, shown via JS for editor tab */
       padding: 0;
-      border-top: 1px solid var(--border);
+      border-top: 1px solid #e2e8f0;
       box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
     }
     .template-toggle {
@@ -188,14 +155,14 @@
       cursor: pointer;
       font-size: 12px;
       font-weight: 600;
-      color: var(--text-secondary);
-      background: linear-gradient(to bottom, var(--bg-body), var(--bg-hover));
-      border-bottom: 1px solid var(--border);
+      color: #475569;
+      background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
+      border-bottom: 1px solid #e2e8f0;
       user-select: none;
       transition: background 0.2s;
     }
     .template-toggle:hover {
-      background: linear-gradient(to bottom, var(--bg-hover), var(--border));
+      background: linear-gradient(to bottom, #f1f5f9, #e2e8f0);
     }
     .toggle-icon {
       transition: transform 0.3s ease;
@@ -234,22 +201,22 @@
       align-items: center;
       gap: 6px;
       padding: 8px 12px;
-      background: var(--bg-surface);
-      border: 1px solid var(--border);
+      background: white;
+      border: 1px solid #e2e8f0;
       border-radius: 8px;
       margin-bottom: 10px;
     }
     .toolbar select, .toolbar input[type="file"] {
       font-size: 12px;
       padding: 4px 8px;
-      border: 1px solid var(--border-strong);
+      border: 1px solid #cbd5e1;
       border-radius: 6px;
-      background: var(--bg-surface);
+      background: white;
     }
     .toolbar-sep {
       width: 1px;
       height: 24px;
-      background: var(--border);
+      background: #e2e8f0;
       margin: 0 4px;
     }
 
@@ -269,8 +236,8 @@
     .btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .btn-primary { background: #7c3aed; color: white; }
     .btn-primary:hover:not(:disabled) { background: #6d28d9; }
-    .btn-secondary { background: var(--bg-hover); color: var(--text-secondary); border: 1px solid var(--border-strong); }
-    .btn-secondary:hover:not(:disabled) { background: var(--border); }
+    .btn-secondary { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+    .btn-secondary:hover:not(:disabled) { background: #e2e8f0; }
     .btn-success { background: #16a34a; color: white; }
     .btn-success:hover:not(:disabled) { background: #15803d; }
     .btn-danger { background: #dc2626; color: white; }
@@ -280,8 +247,8 @@
 
     /* ========== VARIABLE PANEL ========== */
     .var-panel {
-      background: var(--bg-surface);
-      border: 1px solid var(--border);
+      background: white;
+      border: 1px solid #e2e8f0;
       border-radius: 8px;
       padding: 10px;
       margin-bottom: 10px;
@@ -329,8 +296,8 @@
       background: transparent !important;
     }
     .jodit-toolbar__box {
-      background: var(--bg-surface) !important;
-      border: 1px solid var(--border) !important;
+      background: white !important;
+      border: 1px solid #e2e8f0 !important;
       border-radius: 6px !important;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
       margin-bottom: 30px !important;
@@ -356,7 +323,7 @@
       margin: 0 -60px;
       padding: 0;
       text-align: center;
-      color: var(--text-subtle);
+      color: #94a3b8;
       font-size: 11px;
       font-weight: 600;
       cursor: default;
@@ -364,7 +331,7 @@
       position: relative;
       height: 80px;
       background:
-        linear-gradient(to bottom, var(--bg-hover) 0%, var(--border) 100%);
+        linear-gradient(to bottom, #f1f5f9 0%, #e2e8f0 100%);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -379,7 +346,7 @@
       left: 0;
       right: 0;
       height: 1px;
-      background: var(--border-strong);
+      background: #cbd5e1;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
     .jodit-wysiwyg .page-break-marker::after {
@@ -389,7 +356,7 @@
       left: 0;
       right: 0;
       height: 1px;
-      background: var(--border-strong);
+      background: #cbd5e1;
       box-shadow: 0 -1px 3px rgba(0,0,0,0.1);
     }
 
@@ -397,16 +364,16 @@
     /* Rulers are positioned via JS relative to .jodit-workplace */
     .ruler-corner, .ruler-h, .ruler-v { display: none; position: absolute; z-index: 5; pointer-events: none; }
     .ruler-corner.show, .ruler-h.show, .ruler-v.show { display: block; }
-    .ruler-corner { background: var(--border); border-right: 1px solid var(--text-subtle); border-bottom: 1px solid var(--text-subtle); font-size: 7px; color: var(--text-muted); text-align: center; line-height: 20px; width: 25px; height: 20px; }
-    .ruler-h { background: var(--bg-body); border-bottom: 1px solid var(--text-subtle); height: 20px; overflow: hidden; }
-    .ruler-v { background: var(--bg-body); border-right: 1px solid var(--text-subtle); width: 25px; overflow: hidden; }
+    .ruler-corner { background: #e2e8f0; border-right: 1px solid #94a3b8; border-bottom: 1px solid #94a3b8; font-size: 7px; color: #64748b; text-align: center; line-height: 20px; width: 25px; height: 20px; }
+    .ruler-h { background: #f8fafc; border-bottom: 1px solid #94a3b8; height: 20px; overflow: hidden; }
+    .ruler-v { background: #f8fafc; border-right: 1px solid #94a3b8; width: 25px; overflow: hidden; }
     .ruler-marks { position: relative; height: 100%; width: 100%; }
-    .ruler-h .ruler-mark { position: absolute; top: 0; height: 100%; border-left: 1px solid var(--border-strong); font-size: 8px; color: var(--text-secondary); padding-left: 2px; line-height: 20px; }
-    .ruler-h .ruler-mark.cm5 { border-left: 1px solid var(--text-subtle); }
-    .ruler-h .ruler-mark.cm10 { border-left: 2px solid var(--text-muted); font-weight: 600; }
-    .ruler-v .ruler-mark { position: absolute; left: 0; width: 100%; border-top: 1px solid var(--border-strong); font-size: 8px; color: var(--text-secondary); writing-mode: vertical-rl; text-orientation: mixed; padding-top: 2px; }
-    .ruler-v .ruler-mark.cm5 { border-top: 1px solid var(--text-subtle); }
-    .ruler-v .ruler-mark.cm10 { border-top: 2px solid var(--text-muted); font-weight: 600; }
+    .ruler-h .ruler-mark { position: absolute; top: 0; height: 100%; border-left: 1px solid #cbd5e1; font-size: 8px; color: #475569; padding-left: 2px; line-height: 20px; }
+    .ruler-h .ruler-mark.cm5 { border-left: 1px solid #94a3b8; }
+    .ruler-h .ruler-mark.cm10 { border-left: 2px solid #64748b; font-weight: 600; }
+    .ruler-v .ruler-mark { position: absolute; left: 0; width: 100%; border-top: 1px solid #cbd5e1; font-size: 8px; color: #475569; writing-mode: vertical-rl; text-orientation: mixed; padding-top: 2px; }
+    .ruler-v .ruler-mark.cm5 { border-top: 1px solid #94a3b8; }
+    .ruler-v .ruler-mark.cm10 { border-top: 2px solid #64748b; font-weight: 600; }
     #ruler-toggle-btn.active, #preview-ruler-toggle-btn.active { background: #3b82f6 !important; color: white !important; border-color: #3b82f6 !important; }
     .preview-ruler { display: none; }
 
@@ -418,13 +385,13 @@
     .editor-page-a4 {
       max-width: 794px; /* 210mm at 96dpi */
       margin: 0 auto;
-      background: var(--bg-hover);
+      background: #f1f5f9;
       padding: 10px;
       border-radius: 8px;
     }
     .editor-page-a4 .editor-wrapper {
       box-shadow: 0 2px 12px rgba(0,0,0,0.12);
-      border: 1px solid var(--border-strong);
+      border: 1px solid #cbd5e1;
     }
     .editor-page-a4 .jodit-wysiwyg {
       height: 1123px !important;
@@ -436,13 +403,13 @@
     .editor-page-letter {
       max-width: 816px; /* 8.5in at 96dpi */
       margin: 0 auto;
-      background: var(--bg-hover);
+      background: #f1f5f9;
       padding: 10px;
       border-radius: 8px;
     }
     .editor-page-letter .editor-wrapper {
       box-shadow: 0 2px 12px rgba(0,0,0,0.12);
-      border: 1px solid var(--border-strong);
+      border: 1px solid #cbd5e1;
     }
     .editor-page-letter .jodit-wysiwyg {
       height: 1056px !important;
@@ -461,20 +428,20 @@
       align-items: center;
       gap: 10px;
       padding: 10px 12px;
-      background: var(--bg-surface);
-      border: 1px solid var(--border);
+      background: white;
+      border: 1px solid #e2e8f0;
       border-radius: 8px;
       margin-bottom: 10px;
     }
     .preview-nav .record-info {
       font-size: 12px;
-      color: var(--text-muted);
+      color: #64748b;
       flex: 1;
     }
-    .preview-nav .record-info strong { color: var(--text-primary); }
+    .preview-nav .record-info strong { color: #1e293b; }
     .preview-page {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-strong);
+      background: white;
+      border: 1px solid #cbd5e1;
       border-radius: 4px;
       padding: 40px 60px;
       min-height: 500px;
@@ -484,7 +451,7 @@
       line-height: 1.6;
     }
     .preview-pages-wrapper {
-      background: var(--bg-hover);
+      background: #f1f5f9;
       padding: 20px;
       padding-top: 45px; /* space for horizontal ruler (20px) + gap */
       padding-left: 50px; /* space for vertical ruler (25px) + gap */
@@ -521,7 +488,7 @@
     .preview-page-number {
       text-align: center;
       font-size: 11px;
-      color: var(--text-subtle);
+      color: #94a3b8;
       padding: 6px 0;
       font-weight: 600;
     }
@@ -560,13 +527,13 @@
       display: block;
       font-size: 11px;
       font-weight: 600;
-      color: var(--text-secondary);
+      color: #475569;
       margin-bottom: 4px;
     }
     .form-group input, .form-group select {
       width: 100%;
       padding: 6px 10px;
-      border: 1px solid var(--border-strong);
+      border: 1px solid #cbd5e1;
       border-radius: 6px;
       font-size: 12px;
     }
@@ -575,7 +542,7 @@
     .progress-bar {
       width: 100%;
       height: 6px;
-      background: var(--border);
+      background: #e2e8f0;
       border-radius: 3px;
       overflow: hidden;
       margin: 8px 0;
@@ -606,7 +573,7 @@
       border-radius: 8px;
       padding: 24px;
       text-align: center;
-      color: var(--text-muted);
+      color: #64748b;
       cursor: pointer;
       transition: all 0.2s;
     }
@@ -651,7 +618,7 @@
       z-index: 10001;
     }
     .modal {
-      background: var(--bg-surface);
+      background: white;
       border-radius: 12px;
       padding: 20px;
       max-width: 420px;
@@ -659,7 +626,7 @@
       box-shadow: 0 8px 32px rgba(0,0,0,0.2);
     }
     .modal h3 { font-size: 14px; margin-bottom: 10px; }
-    .modal p { font-size: 12px; color: var(--text-muted); margin-bottom: 14px; }
+    .modal p { font-size: 12px; color: #64748b; margin-bottom: 14px; }
     .modal .btn-group { justify-content: flex-end; }
 
     /* ========== MESSAGE ========== */
@@ -677,16 +644,16 @@
     .not-in-grist {
       text-align: center;
       padding: 60px 20px;
-      color: var(--text-muted);
+      color: #64748b;
     }
-    .not-in-grist h2 { font-size: 18px; margin-bottom: 10px; color: var(--text-primary); }
+    .not-in-grist h2 { font-size: 18px; margin-bottom: 10px; color: #1e293b; }
 
     /* ========== FOOTER ========== */
     .footer {
       text-align: center;
       padding: 12px;
       font-size: 11px;
-      color: var(--text-subtle);
+      color: #94a3b8;
     }
     .footer a { color: #7c3aed; text-decoration: none; }
 
@@ -707,8 +674,8 @@
       align-items: center;
       gap: 10px;
       margin-bottom: 14px;
-      background: var(--bg-surface);
-      border: 1px solid var(--border);
+      background: white;
+      border: 1px solid #e2e8f0;
       border-radius: 10px;
       padding: 10px 14px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.04);
@@ -717,17 +684,17 @@
       font-weight: 700;
       font-size: 13px;
       white-space: nowrap;
-      color: var(--text-secondary);
+      color: #475569;
     }
     .table-selector select {
       flex: 1;
       padding: 8px 14px;
-      border: 2px solid var(--border);
+      border: 2px solid #e2e8f0;
       border-radius: 8px;
       font-size: 13px;
       font-weight: 500;
-      color: var(--text-primary);
-      background: var(--bg-body);
+      color: #1e293b;
+      background: #f8fafc;
       cursor: pointer;
       transition: all 0.2s;
       appearance: none;
@@ -766,7 +733,7 @@
     <div class="header">
       <h1>📄 <span data-i18n="title">Document Template</span></h1>
       <div class="header-actions">
-        <button class="lang-btn" onclick="openHelpGuide()" title="Guide d'utilisation" style="background:#fbbf24;color:var(--text-primary);font-weight:bold;">?</button>
+        <button class="lang-btn" onclick="openHelpGuide()" title="Guide d'utilisation" style="background:#fbbf24;color:#1e293b;font-weight:bold;">?</button>
         <button class="lang-btn active" onclick="setLang('fr')">FR</button>
         <button class="lang-btn" onclick="setLang('en')">EN</button>
       </div>
@@ -803,14 +770,14 @@
       <div class="var-panel hidden" id="var-panel">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
           <h3 style="margin:0;">🔤 <span data-i18n="varTitle">Variables disponibles</span>
-            <span style="font-weight:400; font-size:11px; color:var(--text-subtle);" data-i18n="varHint">(cliquez pour insérer)</span>
+            <span style="font-weight:400; font-size:11px; color:#94a3b8;" data-i18n="varHint">(cliquez pour insérer)</span>
           </h3>
           <div style="display:flex;align-items:center;gap:8px;">
-            <button id="ruler-toggle-btn" onclick="toggleRulers()" style="padding:3px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--bg-surface);cursor:pointer;" title="Afficher/Masquer les règles">
+            <button id="ruler-toggle-btn" onclick="toggleRulers()" style="padding:3px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;background:white;cursor:pointer;" title="Afficher/Masquer les règles">
               📏 <span data-i18n="rulerBtn">Règle</span>
             </button>
-            <label style="font-size:12px;font-weight:600;color:var(--text-secondary);">📄 <span data-i18n="editorPageFormat">Format :</span></label>
-            <select id="editor-page-format" onchange="setEditorPageFormat(this.value)" style="padding:3px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;">
+            <label style="font-size:12px;font-weight:600;color:#475569;">📄 <span data-i18n="editorPageFormat">Format :</span></label>
+            <select id="editor-page-format" onchange="setEditorPageFormat(this.value)" style="padding:3px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;">
               <option value="free">Libre</option>
               <option value="a4" selected>A4</option>
               <option value="letter">Letter</option>
@@ -847,10 +814,10 @@
         <span class="toggle-icon" id="template-toggle-icon">▼</span>
         <span data-i18n="templateToggle">Modèles</span>
       </div>
-      <div class="template-manager" id="template-manager-panel" style="background:var(--bg-surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;">
+      <div class="template-manager" id="template-manager-panel" style="background:white;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
-          <label style="font-size:12px;font-weight:600;color:var(--text-secondary);white-space:nowrap;" data-i18n="templateSelect">Modèles enregistrés :</label>
-          <select id="template-list" onchange="onTemplateSelectChange()" style="flex:1;min-width:140px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;">
+          <label style="font-size:12px;font-weight:600;color:#475569;white-space:nowrap;" data-i18n="templateSelect">Modèles enregistrés :</label>
+          <select id="template-list" onchange="onTemplateSelectChange()" style="flex:1;min-width:140px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;">
             <option value="">-- Nouveau modèle --</option>
           </select>
           <button class="btn btn-secondary btn-sm" onclick="deleteSelectedTemplate()" id="btn-delete-template" style="display:none;">
@@ -858,9 +825,9 @@
           </button>
         </div>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-          <label style="font-size:12px;font-weight:600;color:var(--text-secondary);white-space:nowrap;" data-i18n="templateName">Nom du modèle :</label>
-          <input type="text" id="template-name-input" placeholder="Ex: Courrier standard, PV réunion..." style="flex:1;min-width:140px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;" />
-          <select id="save-target-select" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--bg-surface);">
+          <label style="font-size:12px;font-weight:600;color:#475569;white-space:nowrap;" data-i18n="templateName">Nom du modèle :</label>
+          <input type="text" id="template-name-input" placeholder="Ex: Courrier standard, PV réunion..." style="flex:1;min-width:140px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;" />
+          <select id="save-target-select" style="padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;background:white;">
             <option value="new" data-i18n="saveAsNew">Nouveau modèle</option>
           </select>
           <button class="btn btn-primary btn-sm" onclick="saveTemplate()">
@@ -887,7 +854,7 @@
             🔄 <span data-i18n="refreshFilters">Actualiser</span>
           </button>
           <div class="toolbar-sep"></div>
-          <select id="bool-format-preview" onchange="syncBoolFormat(this.value); renderPreview();" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-size: 12px;">
+          <select id="bool-format-preview" onchange="syncBoolFormat(this.value); renderPreview();" style="padding: 4px 8px; border-radius: 4px; border: 1px solid #e2e8f0; font-size: 12px;">
             <option value="text" data-i18n="boolFormatText">Oui / Non</option>
             <option value="checkbox" data-i18n="boolFormatCheckbox">☑ / ☐</option>
           </select>
@@ -907,7 +874,7 @@
           <div class="ruler-h preview-ruler" id="preview-ruler-h"><div class="ruler-marks" id="preview-ruler-h-marks"></div></div>
           <div class="ruler-v preview-ruler" id="preview-ruler-v"><div class="ruler-marks" id="preview-ruler-v-marks"></div></div>
           <div class="preview-page" id="preview-page">
-            <p style="color: var(--text-subtle); text-align: center; padding: 40px;" data-i18n="previewEmpty">
+            <p style="color: #94a3b8; text-align: center; padding: 40px;" data-i18n="previewEmpty">
               Sélectionnez une table et créez un modèle pour voir la prévisualisation.
             </p>
           </div>
@@ -967,8 +934,8 @@
             </div>
             <div class="form-group">
               <label>URL base images :</label>
-              <input type="text" id="image-base-url" placeholder="https://mon-serveur.com/images" style="width: 100%; padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px;">
-              <small style="color: var(--text-muted); font-size: 11px;">Pour les chemins relatifs (ex: photo.jpg → URL/photo.jpg)</small>
+              <input type="text" id="image-base-url" placeholder="https://mon-serveur.com/images" style="width: 100%; padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 13px;">
+              <small style="color: #64748b; font-size: 11px;">Pour les chemins relatifs (ex: photo.jpg → URL/photo.jpg)</small>
             </div>
           </div>
 
@@ -1000,7 +967,7 @@
     <div class="modal" style="max-width:800px;max-height:85vh;overflow-y:auto;" onclick="event.stopPropagation()">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
         <h3 style="margin:0;font-size:16px;">📖 <span data-i18n="helpTitle">Guide d'utilisation</span></h3>
-        <button onclick="closeHelpGuide()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted);">&times;</button>
+        <button onclick="closeHelpGuide()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#64748b;">&times;</button>
       </div>
       <div id="help-guide-content" style="font-size:13px;line-height:1.6;">
         <!-- Content will be injected by JS based on language -->
@@ -1020,8 +987,8 @@
     </div>
   </div>
 
-  <script src="widget.js?v=1"></script>
-  <footer style="position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-body); border-top: 1px solid var(--border); padding: 4px 12px; font-size: 0.7em; color: var(--text-subtle); display: flex; justify-content: space-between; z-index: 1000;">
+  <script src="widget.js"></script>
+  <footer style="position: fixed; bottom: 0; left: 0; right: 0; background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 4px 12px; font-size: 0.7em; color: #94a3b8; display: flex; justify-content: space-between; z-index: 1000;">
     <span>© 2026 Said Hamadou (isaytoo)</span>
     <a href="https://gristup.fr" target="_blank" style="color: #3b82f6; text-decoration: none;">gristup.fr</a>
   </footer>

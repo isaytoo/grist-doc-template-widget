@@ -755,18 +755,18 @@ function insertImageVariable() {
   }).join('');
   
   var dialog = document.createElement('div');
-  dialog.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg-surface);padding:20px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.3);z-index:10000;min-width:300px;';
+  dialog.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.3);z-index:10000;min-width:300px;';
   dialog.innerHTML = '\
     <h3 style="margin:0 0 15px 0;font-size:1.1em;">' + (currentLang === 'fr' ? 'Insérer une image' : 'Insert Image') + '</h3>\
     <div style="margin-bottom:12px;">\
       <label style="display:block;margin-bottom:4px;font-weight:500;">' + (currentLang === 'fr' ? 'Colonne contenant l\'image' : 'Column containing image') + '</label>\
-      <select id="img-column" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;">\
+      <select id="img-column" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:4px;">\
         ' + colOptions + '\
       </select>\
     </div>\
     <div style="margin-bottom:12px;">\
       <label style="display:block;margin-bottom:4px;font-weight:500;">' + (currentLang === 'fr' ? 'Largeur (optionnel)' : 'Width (optional)') + '</label>\
-      <input type="number" id="img-width" placeholder="200" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;">\
+      <input type="number" id="img-width" placeholder="200" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:4px;">\
       <small style="color:#64748b;font-size:11px;">' + (currentLang === 'fr' ? 'En pixels. Vide = taille originale' : 'In pixels. Empty = original size') + '</small>\
     </div>\
     <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:4px;padding:10px;margin-bottom:12px;font-size:12px;">\
@@ -777,7 +777,7 @@ function insertImageVariable() {
     </div>\
     <div style="display:flex;gap:10px;">\
       <button id="img-insert" style="flex:1;padding:10px;background:#22c55e;color:white;border:none;border-radius:6px;cursor:pointer;">' + (currentLang === 'fr' ? 'Insérer' : 'Insert') + '</button>\
-      <button id="img-cancel" style="flex:1;padding:10px;background:var(--bg-hover);border:none;border-radius:6px;cursor:pointer;">' + (currentLang === 'fr' ? 'Annuler' : 'Cancel') + '</button>\
+      <button id="img-cancel" style="flex:1;padding:10px;background:#f1f5f9;border:none;border-radius:6px;cursor:pointer;">' + (currentLang === 'fr' ? 'Annuler' : 'Cancel') + '</button>\
     </div>\
   ';
   
@@ -1158,7 +1158,7 @@ function insertTableWithLoop() {
     '</div>' +
     '<div id="linked-cols-container" style="display:none;">' +
     '<label style="display:block;margin-bottom:5px;font-weight:600;">' + (currentLang === 'fr' ? 'Colonnes à afficher :' : 'Columns to display:') + '</label>' +
-    '<div id="linked-cols-checkboxes" style="max-height:120px;overflow-y:auto;border:1px solid #eee;padding:8px;border-radius:4px;background:var(--bg-surface);"></div>' +
+    '<div id="linked-cols-checkboxes" style="max-height:120px;overflow-y:auto;border:1px solid #eee;padding:8px;border-radius:4px;background:white;"></div>' +
     '</div>' +
     '</div>' +
     '<div id="filter-options" style="display:none;border:1px solid #e5e7eb;padding:10px;border-radius:6px;margin-bottom:10px;background:#f9fafb;">' +
@@ -1677,12 +1677,12 @@ function initEditor() {
         tooltip: currentLang === 'fr' ? 'Mise en page (tableaux côte à côte)' : 'Layout (side by side tables)',
         exec: function(editor) {
           var dialog = document.createElement('div');
-          dialog.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg-surface);padding:20px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.3);z-index:10000;min-width:320px;';
+          dialog.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.3);z-index:10000;min-width:320px;';
           dialog.innerHTML = '\
             <h3 style="margin:0 0 15px 0;font-size:1.1em;">' + (currentLang === 'fr' ? 'Mise en page avec tableaux' : 'Table Layout') + '</h3>\
             <div style="margin-bottom:15px;">\
               <label style="display:block;margin-bottom:8px;font-weight:500;">' + (currentLang === 'fr' ? 'Type de mise en page' : 'Layout type') + '</label>\
-              <select id="layout-type" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;">\
+              <select id="layout-type" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:4px;">\
                 <option value="2col">' + (currentLang === 'fr' ? '2 colonnes (50% / 50%)' : '2 columns (50% / 50%)') + '</option>\
                 <option value="3col">' + (currentLang === 'fr' ? '3 colonnes (33% / 33% / 33%)' : '3 columns (33% / 33% / 33%)') + '</option>\
                 <option value="sidebar-left">' + (currentLang === 'fr' ? 'Barre latérale gauche (30% / 70%)' : 'Left sidebar (30% / 70%)') + '</option>\
@@ -1695,7 +1695,7 @@ function initEditor() {
             </div>\
             <div style="display:flex;gap:10px;">\
               <button id="layout-insert" style="flex:1;padding:10px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer;">' + (currentLang === 'fr' ? 'Insérer' : 'Insert') + '</button>\
-              <button id="layout-cancel" style="flex:1;padding:10px;background:var(--bg-hover);border:none;border-radius:6px;cursor:pointer;">' + (currentLang === 'fr' ? 'Annuler' : 'Cancel') + '</button>\
+              <button id="layout-cancel" style="flex:1;padding:10px;background:#f1f5f9;border:none;border-radius:6px;cursor:pointer;">' + (currentLang === 'fr' ? 'Annuler' : 'Cancel') + '</button>\
             </div>\
           ';
           
@@ -1775,17 +1775,17 @@ function initEditor() {
           }
           
           var dialog = document.createElement('div');
-          dialog.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg-surface);padding:20px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.3);z-index:10000;min-width:280px;';
+          dialog.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.3);z-index:10000;min-width:280px;';
           dialog.innerHTML = '\
             <h3 style="margin:0 0 15px 0;font-size:1.1em;">' + (currentLang === 'fr' ? 'Tableau imbriqué' : 'Nested Table') + '</h3>\
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:15px;">\
               <div>\
                 <label style="display:block;margin-bottom:4px;font-weight:500;">' + (currentLang === 'fr' ? 'Lignes' : 'Rows') + '</label>\
-                <input type="number" id="nested-rows" value="3" min="1" max="20" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;">\
+                <input type="number" id="nested-rows" value="3" min="1" max="20" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:4px;">\
               </div>\
               <div>\
                 <label style="display:block;margin-bottom:4px;font-weight:500;">' + (currentLang === 'fr' ? 'Colonnes' : 'Columns') + '</label>\
-                <input type="number" id="nested-cols" value="3" min="1" max="10" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;">\
+                <input type="number" id="nested-cols" value="3" min="1" max="10" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:4px;">\
               </div>\
             </div>\
             <div style="margin-bottom:15px;">\
@@ -1796,7 +1796,7 @@ function initEditor() {
             </div>\
             <div style="display:flex;gap:10px;">\
               <button id="nested-insert" style="flex:1;padding:10px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer;">' + (currentLang === 'fr' ? 'Insérer' : 'Insert') + '</button>\
-              <button id="nested-cancel" style="flex:1;padding:10px;background:var(--bg-hover);border:none;border-radius:6px;cursor:pointer;">' + (currentLang === 'fr' ? 'Annuler' : 'Cancel') + '</button>\
+              <button id="nested-cancel" style="flex:1;padding:10px;background:#f1f5f9;border:none;border-radius:6px;cursor:pointer;">' + (currentLang === 'fr' ? 'Annuler' : 'Cancel') + '</button>\
             </div>\
           ';
           
@@ -1818,7 +1818,7 @@ function initEditor() {
                 var tag = (r === 0 && hasHeader) ? 'th' : 'td';
                 var style = 'border:1px solid #000;padding:4px 8px;';
                 if (r === 0 && hasHeader) {
-                  style += 'background:var(--bg-hover);font-weight:bold;';
+                  style += 'background:#f1f5f9;font-weight:bold;';
                 }
                 html += '<' + tag + ' style="' + style + '"></' + tag + '>';
               }
@@ -1879,14 +1879,14 @@ function initEditor() {
           var widthUnit = currentWidth.includes('%') ? '%' : 'px';
           
           var dialog = document.createElement('div');
-          dialog.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg-surface);padding:20px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.3);z-index:10000;min-width:280px;';
+          dialog.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.3);z-index:10000;min-width:280px;';
           dialog.innerHTML = '\
             <h3 style="margin:0 0 15px 0;font-size:1.1em;">' + (currentLang === 'fr' ? 'Largeur de la colonne' : 'Column Width') + '</h3>\
             <div style="margin-bottom:12px;">\
               <label style="display:block;margin-bottom:4px;font-weight:500;">' + (currentLang === 'fr' ? 'Largeur' : 'Width') + '</label>\
               <div style="display:flex;gap:8px;">\
-                <input type="number" id="col-width-value" value="' + widthValue + '" min="20" max="1000" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:4px;">\
-                <select id="col-width-unit" style="padding:8px;border:1px solid var(--border);border-radius:4px;">\
+                <input type="number" id="col-width-value" value="' + widthValue + '" min="20" max="1000" style="flex:1;padding:8px;border:1px solid #e2e8f0;border-radius:4px;">\
+                <select id="col-width-unit" style="padding:8px;border:1px solid #e2e8f0;border-radius:4px;">\
                   <option value="px" ' + (widthUnit === 'px' ? 'selected' : '') + '>px</option>\
                   <option value="%" ' + (widthUnit === '%' ? 'selected' : '') + '>%</option>\
                 </select>\
@@ -1900,7 +1900,7 @@ function initEditor() {
             </div>\
             <div style="display:flex;gap:10px;margin-top:15px;">\
               <button id="col-width-apply" style="flex:1;padding:10px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer;">' + (currentLang === 'fr' ? 'Appliquer' : 'Apply') + '</button>\
-              <button id="col-width-cancel" style="flex:1;padding:10px;background:var(--bg-hover);border:none;border-radius:6px;cursor:pointer;">' + (currentLang === 'fr' ? 'Annuler' : 'Cancel') + '</button>\
+              <button id="col-width-cancel" style="flex:1;padding:10px;background:#f1f5f9;border:none;border-radius:6px;cursor:pointer;">' + (currentLang === 'fr' ? 'Annuler' : 'Cancel') + '</button>\
             </div>\
           ';
           
@@ -1986,7 +1986,7 @@ function initEditor() {
           else if (currentBorder.includes('ridge')) currentStyle = 'ridge';
           
           var dialog = document.createElement('div');
-          dialog.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg-surface);padding:20px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.3);z-index:10000;min-width:320px;';
+          dialog.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.3);z-index:10000;min-width:320px;';
           dialog.innerHTML = '\
             <h3 style="margin:0 0 15px 0;font-size:1.1em;">' + (currentLang === 'fr' ? 'Bordures de la cellule' : 'Cell Borders') + '</h3>\
             <div style="margin-bottom:12px;">\
@@ -1997,9 +1997,9 @@ function initEditor() {
             </div>\
             <div id="cell-border-options" style="' + (isInvisible ? 'opacity:0.5;pointer-events:none;' : '') + '">\
               <div style="margin-bottom:8px;font-weight:500;">' + (currentLang === 'fr' ? 'Couleur' : 'Color') + '</div>\
-              <input type="color" id="cell-border-color" value="' + currentColor + '" style="width:100%;height:36px;border:1px solid var(--border);border-radius:4px;cursor:pointer;">\
+              <input type="color" id="cell-border-color" value="' + currentColor + '" style="width:100%;height:36px;border:1px solid #e2e8f0;border-radius:4px;cursor:pointer;">\
               <div style="margin-top:12px;font-weight:500;">' + (currentLang === 'fr' ? 'Type de filet' : 'Line style') + '</div>\
-              <select id="cell-border-style" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;">\
+              <select id="cell-border-style" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:4px;">\
                 <option value="solid" ' + (currentStyle === 'solid' ? 'selected' : '') + '>' + (currentLang === 'fr' ? '━━━ Plein' : '━━━ Solid') + '</option>\
                 <option value="dashed" ' + (currentStyle === 'dashed' ? 'selected' : '') + '>' + (currentLang === 'fr' ? '┅┅┅ Tirets' : '┅┅┅ Dashed') + '</option>\
                 <option value="dotted" ' + (currentStyle === 'dotted' ? 'selected' : '') + '>' + (currentLang === 'fr' ? '┈┈┈ Pointillé' : '┈┈┈ Dotted') + '</option>\
@@ -2008,7 +2008,7 @@ function initEditor() {
                 <option value="ridge" ' + (currentStyle === 'ridge' ? 'selected' : '') + '>' + (currentLang === 'fr' ? '▥▥▥ Crête' : '▥▥▥ Ridge') + '</option>\
               </select>\
               <div style="margin-top:12px;font-weight:500;">' + (currentLang === 'fr' ? 'Épaisseur' : 'Thickness') + '</div>\
-              <select id="cell-border-width" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;">\
+              <select id="cell-border-width" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:4px;">\
                 <option value="0.5px" ' + (currentWidth === '0.5px' ? 'selected' : '') + '>0.5px - ' + (currentLang === 'fr' ? 'Très fin' : 'Hairline') + '</option>\
                 <option value="0.75px" ' + (currentWidth === '0.75px' ? 'selected' : '') + '>0.75px</option>\
                 <option value="1px" ' + (currentWidth === '1px' ? 'selected' : '') + '>1px - ' + (currentLang === 'fr' ? 'Fin' : 'Thin') + '</option>\
@@ -2025,14 +2025,14 @@ function initEditor() {
                 <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="cell-border-left" checked> ' + (currentLang === 'fr' ? 'Gauche' : 'Left') + '</label>\
                 <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="cell-border-right" checked> ' + (currentLang === 'fr' ? 'Droite' : 'Right') + '</label>\
               </div>\
-              <div style="margin-top:12px;padding:10px;background:var(--bg-body);border-radius:6px;border:1px solid var(--border);">\
+              <div style="margin-top:12px;padding:10px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0;">\
                 <div style="font-weight:500;margin-bottom:6px;font-size:0.9em;">' + (currentLang === 'fr' ? 'Aperçu' : 'Preview') + '</div>\
-                <div id="cell-border-preview" style="width:100%;height:40px;background:var(--bg-surface);border:2px solid #000;"></div>\
+                <div id="cell-border-preview" style="width:100%;height:40px;background:white;border:2px solid #000;"></div>\
               </div>\
             </div>\
             <div style="display:flex;gap:10px;margin-top:15px;">\
               <button id="cell-border-apply" style="flex:1;padding:10px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer;">' + (currentLang === 'fr' ? 'Appliquer' : 'Apply') + '</button>\
-              <button id="cell-border-cancel" style="flex:1;padding:10px;background:var(--bg-hover);border:none;border-radius:6px;cursor:pointer;">' + (currentLang === 'fr' ? 'Annuler' : 'Cancel') + '</button>\
+              <button id="cell-border-cancel" style="flex:1;padding:10px;background:#f1f5f9;border:none;border-radius:6px;cursor:pointer;">' + (currentLang === 'fr' ? 'Annuler' : 'Cancel') + '</button>\
             </div>\
           ';
           
@@ -2139,7 +2139,7 @@ function initEditor() {
           else if (currentBorder.includes('ridge')) currentStyle = 'ridge';
           
           var dialog = document.createElement('div');
-          dialog.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg-surface);padding:20px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.3);z-index:10000;min-width:320px;';
+          dialog.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.3);z-index:10000;min-width:320px;';
           dialog.innerHTML = `
             <h3 style="margin:0 0 15px 0;font-size:1.1em;">${currentLang === 'fr' ? 'Bordures du tableau' : 'Table Borders'}</h3>
             <div style="margin-bottom:12px;">
@@ -2150,9 +2150,9 @@ function initEditor() {
             </div>
             <div id="border-color-group" style="${isInvisible ? 'opacity:0.5;pointer-events:none;' : ''}">
               <div style="margin-bottom:8px;font-weight:500;">${currentLang === 'fr' ? 'Couleur des bordures' : 'Border color'}</div>
-              <input type="color" id="border-color" value="${currentColor}" style="width:100%;height:36px;border:1px solid var(--border);border-radius:4px;cursor:pointer;">
+              <input type="color" id="border-color" value="${currentColor}" style="width:100%;height:36px;border:1px solid #e2e8f0;border-radius:4px;cursor:pointer;">
               <div style="margin-top:12px;font-weight:500;">${currentLang === 'fr' ? 'Type de filet' : 'Line style'}</div>
-              <select id="border-style" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;">
+              <select id="border-style" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:4px;">
                 <option value="solid" ${currentStyle === 'solid' ? 'selected' : ''}>${currentLang === 'fr' ? '━━━ Plein' : '━━━ Solid'}</option>
                 <option value="dashed" ${currentStyle === 'dashed' ? 'selected' : ''}>${currentLang === 'fr' ? '┅┅┅ Tirets' : '┅┅┅ Dashed'}</option>
                 <option value="dotted" ${currentStyle === 'dotted' ? 'selected' : ''}>${currentLang === 'fr' ? '┈┈┈ Pointillé' : '┈┈┈ Dotted'}</option>
@@ -2161,7 +2161,7 @@ function initEditor() {
                 <option value="ridge" ${currentStyle === 'ridge' ? 'selected' : ''}>${currentLang === 'fr' ? '▥▥▥ Crête' : '▥▥▥ Ridge'}</option>
               </select>
               <div style="margin-top:12px;font-weight:500;">${currentLang === 'fr' ? 'Épaisseur' : 'Thickness'}</div>
-              <select id="border-width" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;">
+              <select id="border-width" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:4px;">
                 <option value="0.5px" ${currentWidth === '0.5px' ? 'selected' : ''}>0.5px - ${currentLang === 'fr' ? 'Très fin' : 'Hairline'}</option>
                 <option value="0.75px" ${currentWidth === '0.75px' ? 'selected' : ''}>0.75px</option>
                 <option value="1px" ${currentWidth === '1px' ? 'selected' : ''}>1px - ${currentLang === 'fr' ? 'Fin' : 'Thin'}</option>
@@ -2171,14 +2171,14 @@ function initEditor() {
                 <option value="5px" ${currentWidth === '5px' ? 'selected' : ''}>5px - ${currentLang === 'fr' ? 'Épais' : 'Thick'}</option>
                 <option value="6px" ${currentWidth === '6px' ? 'selected' : ''}>6px</option>
               </select>
-              <div style="margin-top:12px;padding:10px;background:var(--bg-body);border-radius:6px;border:1px solid var(--border);">
+              <div style="margin-top:12px;padding:10px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0;">
                 <div style="font-weight:500;margin-bottom:6px;font-size:0.9em;">${currentLang === 'fr' ? 'Aperçu' : 'Preview'}</div>
-                <div id="border-preview" style="width:100%;height:40px;background:var(--bg-surface);border:2px solid #000;"></div>
+                <div id="border-preview" style="width:100%;height:40px;background:white;border:2px solid #000;"></div>
               </div>
             </div>
             <div style="display:flex;gap:10px;margin-top:15px;">
               <button id="border-apply" style="flex:1;padding:10px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer;">${currentLang === 'fr' ? 'Appliquer' : 'Apply'}</button>
-              <button id="border-cancel" style="flex:1;padding:10px;background:var(--bg-hover);border:none;border-radius:6px;cursor:pointer;">${currentLang === 'fr' ? 'Annuler' : 'Cancel'}</button>
+              <button id="border-cancel" style="flex:1;padding:10px;background:#f1f5f9;border:none;border-radius:6px;cursor:pointer;">${currentLang === 'fr' ? 'Annuler' : 'Cancel'}</button>
             </div>
           `;
           
@@ -4220,7 +4220,7 @@ async function renderHtmlToPdfPages(html, pdf, pageWidth, pageHeight, pageSize) 
   var imgWidth = pageWidth - (margin * 2);
   var availableHeight = pageHeight - (margin * 2);
   var pixelWidth = (pageSize === 'a4' ? 794 : 816);
-  var baseCss = 'position:absolute;left:-9999px;top:0;width:' + pixelWidth + 'px;padding:40px 60px;font-family:"Times New Roman",Times,serif;font-size:14px;line-height:1.6;background:var(--bg-surface);';
+  var baseCss = 'position:absolute;left:-9999px;top:0;width:' + pixelWidth + 'px;padding:40px 60px;font-family:"Times New Roman",Times,serif;font-size:14px;line-height:1.6;background:white;';
 
   // Use the same auto-pagination as preview
   var explicitPages = splitOnPageBreaks(html);
@@ -4566,10 +4566,10 @@ function getHelpGuideFR() {
   return `
     <style>
       .help-section { margin-bottom: 20px; }
-      .help-section h4 { color: #7c3aed; margin-bottom: 8px; font-size: 14px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+      .help-section h4 { color: #7c3aed; margin-bottom: 8px; font-size: 14px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
       .help-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 12px; }
-      .help-table th { background: var(--bg-hover); text-align: left; padding: 8px; border: 1px solid var(--border); }
-      .help-table td { padding: 8px; border: 1px solid var(--border); }
+      .help-table th { background: #f1f5f9; text-align: left; padding: 8px; border: 1px solid #e2e8f0; }
+      .help-table td { padding: 8px; border: 1px solid #e2e8f0; }
       .help-table code { background: #fef3c7; padding: 2px 6px; border-radius: 3px; font-family: monospace; }
       .help-tip { background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; padding: 10px; margin: 10px 0; font-size: 12px; }
       .help-tip strong { color: #166534; }
@@ -4869,7 +4869,7 @@ function positionPreviewRulers() {
   rulerH.style.left = pageLeft + 'px';
   rulerH.style.top = (pageTop - rulerH_height) + 'px';
   rulerH.style.width = pageWidth + 'px';
-  rulerH.style.background = 'var(--bg-body)';
+  rulerH.style.background = '#f8fafc';
   
   // A4: 210mm x 297mm - use same scale for both axes
   var pxPerCm = pageWidth / 21.0;
@@ -4879,12 +4879,12 @@ function positionPreviewRulers() {
   rulerV.style.left = (pageLeft - rulerV_width) + 'px';
   rulerV.style.top = pageTop + 'px';
   rulerV.style.height = a4HeightPx + 'px';
-  rulerV.style.background = 'var(--bg-body)';
+  rulerV.style.background = '#f8fafc';
   
   // Place corner
   rulerCorner.style.left = (pageLeft - rulerV_width) + 'px';
   rulerCorner.style.top = (pageTop - rulerH_height) + 'px';
-  rulerCorner.style.background = 'var(--border)';
+  rulerCorner.style.background = '#e2e8f0';
   
   // Horizontal ruler marks (0 to 21 cm)
   var hHtml = '';
@@ -4930,10 +4930,10 @@ function getHelpGuideEN() {
   return `
     <style>
       .help-section { margin-bottom: 20px; }
-      .help-section h4 { color: #7c3aed; margin-bottom: 8px; font-size: 14px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+      .help-section h4 { color: #7c3aed; margin-bottom: 8px; font-size: 14px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
       .help-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 12px; }
-      .help-table th { background: var(--bg-hover); text-align: left; padding: 8px; border: 1px solid var(--border); }
-      .help-table td { padding: 8px; border: 1px solid var(--border); }
+      .help-table th { background: #f1f5f9; text-align: left; padding: 8px; border: 1px solid #e2e8f0; }
+      .help-table td { padding: 8px; border: 1px solid #e2e8f0; }
       .help-table code { background: #fef3c7; padding: 2px 6px; border-radius: 3px; font-family: monospace; }
       .help-tip { background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; padding: 10px; margin: 10px 0; font-size: 12px; }
       .help-tip strong { color: #166534; }
