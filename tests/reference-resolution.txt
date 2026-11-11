@@ -1,0 +1,28 @@
+simple | aperçu                      <p>Bonjour <span class="var-resolved">Durand &lt;b&gt;&amp;</span>&nbsp;, né le <span class="var-resolved">11/11/2025</span>&nbsp;</p>
+simple | pdf                         <p>Bonjour Durand &lt;b&gt;&amp;&nbsp;, né le 11/11/2025&nbsp;</p>
+simple | pdf async                   <p>Bonjour Durand &lt;b&gt;&amp;&nbsp;, né le 11/11/2025&nbsp;</p>
+simple | aperçu async                <p>Bonjour <span class="var-resolved">Durand &lt;b&gt;&amp;</span>&nbsp;, né le <span class="var-resolved">11/11/2025</span>&nbsp;</p>
+nu | aperçu                          <p>Bonjour <span class="var-resolved">Durand &lt;b&gt;&amp;</span> et {{Inconnu}}</p>
+nu | pdf                             <p>Bonjour Durand &lt;b&gt;&amp; et {{Inconnu}}</p>
+nu | pdf async                       <p>Bonjour Durand &lt;b&gt;&amp; et {{Inconnu}}</p>
+nu | aperçu async                    <p>Bonjour <span class="var-resolved">Durand &lt;b&gt;&amp;</span> et {{Inconnu}}</p>
+vide | aperçu                        <p>Ville : <span class="var-empty">[Ville: vide]</span>&nbsp;</p>
+vide | pdf                           <p>Ville : <em>[Ville]</em>&nbsp;</p>
+vide | pdf async                     <p>Ville : <em>[Ville]</em>&nbsp;</p>
+vide | aperçu async                  <p>Ville : <span class="var-empty">[Ville: vide]</span>&nbsp;</p>
+tableau | aperçu                     <table style="width:100%"><tbody><tr><td><span class="var-resolved">Durand &lt;b&gt;&amp;</span>&nbsp;</td><td style="border: 2px dashed rgb(255, 0, 0);"><span class="var-resolved">1234.5</span></td></tr></tbody></table>
+tableau | pdf                        <table style="width:100%"><tbody><tr><td>Durand &lt;b&gt;&amp;&nbsp;</td><td style="border: 2px dashed rgb(255, 0, 0);">1234.5</td></tr></tbody></table>
+tableau | pdf async                  <table style="width:100%"><tbody><tr><td>Durand &lt;b&gt;&amp;&nbsp;</td><td style="border: 2px dashed rgb(255, 0, 0);">1234.5</td></tr></tbody></table>
+tableau | aperçu async               <table style="width:100%"><tbody><tr><td><span class="var-resolved">Durand &lt;b&gt;&amp;</span>&nbsp;</td><td style="border: 2px dashed rgb(255, 0, 0);"><span class="var-resolved">1234.5</span></td></tr></tbody></table>
+image | aperçu                       <p><span class="var-empty">[IMG: Photo vide]</span></p>
+image | pdf                          <p></p>
+image | pdf async                    <p><span style="background:#dcfce7;color:#166534;padding:2px 6px;border-radius:4px;">{{IMG:Photo:120}}</span></p>
+image | aperçu async                 <p><span style="background:#dcfce7;color:#166534;padding:2px 6px;border-radius:4px;">{{IMG:Photo:120}}</span></p>
+saut | aperçu                        <p>a</p><div class="page-break-marker" contenteditable="false">— saut —</div><p><span class="var-resolved">Durand &lt;b&gt;&amp;</span>&nbsp;</p>
+saut | pdf                           <p>a</p><div style="page-break-after:always;"></div><p>Durand &lt;b&gt;&amp;&nbsp;</p>
+saut | pdf async                     <p>a</p><div style="page-break-after:always;"></div><p>Durand &lt;b&gt;&amp;&nbsp;</p>
+saut | aperçu async                  <p>a</p><div class="page-break-marker" contenteditable="false">— saut —</div><p><span class="var-resolved">Durand &lt;b&gt;&amp;</span>&nbsp;</p>
+special | aperçu                     <p><span class="var-resolved">Durand &lt;b&gt;&amp;</span>&nbsp; &amp; <b><span class="var-resolved">Durand &lt;b&gt;&amp;</span></b></p>
+special | pdf                        <p>Durand &lt;b&gt;&amp;&nbsp; &amp; <b>Durand &lt;b&gt;&amp;</b></p>
+special | pdf async                  <p>Durand &lt;b&gt;&amp;&nbsp; &amp; <b>Durand &lt;b&gt;&amp;</b></p>
+special | aperçu async               <p><span class="var-resolved">Durand &lt;b&gt;&amp;</span>&nbsp; &amp; <b><span class="var-resolved">Durand &lt;b&gt;&amp;</span></b></p>

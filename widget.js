@@ -222,6 +222,21 @@ var tableData = null;       // { col: [...], ... } - ALL data from table
 var filteredRecords = [];   // Records filtered by "Select By" (from grist.onRecords)
 var availableViews = [];    // Views available for the selected table
 var currentRecordIndex = 0;
+// Version affichée en pied de page. À incrémenter en même temps que le ?v= de
+// index.html : c'est ce paramètre qui force le navigateur à recharger le script,
+// et la pastille qui permet de vérifier qu'il l'a fait.
+var WIDGET_VERSION = 'v1';
+function showWidgetVersion() {
+  ['widget-version', 'widget-version-titre'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = WIDGET_VERSION;
+  });
+}
+showWidgetVersion();
+// Le pied de page est placé après ce script dans la page : il n'existe pas encore
+// à ce stade, d'où un second passage une fois le document entièrement lu.
+document.addEventListener('DOMContentLoaded', showWidgetVersion);
+
 var templateHtml = '';
 var editorInstance = null;
 var TEMPLATE_STORAGE_KEY = 'grist_doc_template_';
@@ -1969,7 +1984,7 @@ function initEditor() {
           }
           
           // Parse current border style
-          var currentBorder = cell.style.border || cell.style.borderTop || '1px solid #000';
+          var currentBorder = inlineBorderCss(cell) || '1px solid #000';
           var isInvisible = currentBorder.includes('transparent') || currentBorder === 'none' || currentBorder === '';
           var currentColor = '#000000';
           var currentWidth = '1px';
@@ -2082,6 +2097,7 @@ function initEditor() {
             cell.style.borderBottom = bottom ? borderValue : noBorder;
             cell.style.borderLeft = left ? borderValue : noBorder;
             cell.style.borderRight = right ? borderValue : noBorder;
+            notifyEditorChange(editor);
             
             document.body.removeChild(dialog);
             document.body.removeChild(overlay);
@@ -2123,7 +2139,7 @@ function initEditor() {
           }
           
           // Show border options dialog
-          var currentBorder = table.style.border || '1px solid #000';
+          var currentBorder = inlineBorderCss(table) || '1px solid #000';
           var isInvisible = currentBorder.includes('transparent') || currentBorder === 'none' || currentBorder === '';
           var currentColor = '#000000';
           var currentWidth = '1px';
@@ -2228,6 +2244,7 @@ function initEditor() {
             cells.forEach(function(cell) {
               cell.style.border = borderValue;
             });
+            notifyEditorChange(editor);
             
             document.body.removeChild(dialog);
             document.body.removeChild(overlay);
@@ -2321,6 +2338,12 @@ function initEditor() {
     events: {
       change: function() {
         scheduleAutoSave();
+      },
+      beforeCommand: function(command) {
+        if (editorInstance && VAR_FORMAT_COMMANDS.indexOf(String(command).toLowerCase()) !== -1) unlockVarChips(editorInstance);
+      },
+      afterCommand: function(command) {
+        if (editorInstance && VAR_FORMAT_COMMANDS.indexOf(String(command).toLowerCase()) !== -1) lockVarChips(editorInstance);
       },
       selectionchange: function() {
         // Save cursor position whenever selection changes
@@ -3190,7 +3213,7 @@ function executeLoopFromView(viewId, loopContent, forPdf) {
       var display = formatValueForDisplay(val);
       
       // Replace styled spans
-      var styledRegex = new RegExp('<span[^>]*>\\{\\{' + escapeRegex(col) + '\\}\\}</span>', 'g');
+      var styledRegex = varChipRegex(col);
       if (display) {
         if (forPdf) {
           rowHtml = rowHtml.replace(styledRegex, sanitize(display));
@@ -3290,7 +3313,7 @@ async function executeLoopLinkedTableAsync(linkedTableName, refColumn, loopConte
         var display = formatValueForDisplay(val);
         
         // Replace styled spans
-        var styledRegex = new RegExp('<span[^>]*>\\{\\{' + escapeRegex(col) + '\\}\\}</span>', 'g');
+        var styledRegex = varChipRegex(col);
         if (display) {
           if (forPdf) {
             rowHtml = rowHtml.replace(styledRegex, sanitize(display));
@@ -3458,7 +3481,7 @@ async function processLoopsAsync(html, forPdf) {
 
 // Async version of resolveTemplate for PDF generation
 async function resolveTemplateAsync(html, record, forPdf) {
-  var resolved = html;
+  var resolved = unwrapVarChips(html);
   
   // Process loops with async support for linked tables
   resolved = await processLoopsAsync(resolved, forPdf);
@@ -3466,7 +3489,7 @@ async function resolveTemplateAsync(html, record, forPdf) {
   for (var col in record) {
     var val = record[col];
     var display = formatValueForDisplay(val);
-    var styledRegex = new RegExp('<span[^>]*>\\{\\{' + escapeRegex(col) + '\\}\\}</span>', 'g');
+    var styledRegex = varChipRegex(col);
     if (display) {
       if (forPdf) {
         resolved = resolved.replace(styledRegex, sanitize(display));
@@ -3528,7 +3551,7 @@ function executeLoopAllRows(loopContent, forPdf) {
         var display = formatValueForDisplay(val);
         
         // Replace styled spans
-        var styledRegex = new RegExp('<span[^>]*>\\{\\{' + escapeRegex(col) + '\\}\\}</span>', 'g');
+        var styledRegex = varChipRegex(col);
         if (display) {
           if (forPdf) {
             rowHtml = rowHtml.replace(styledRegex, sanitize(display));
@@ -3583,7 +3606,7 @@ function executeLoopAllRows(loopContent, forPdf) {
       var display = formatValueForDisplay(val);
       
       // Replace styled spans
-      var styledRegex = new RegExp('<span[^>]*>\\{\\{' + escapeRegex(col) + '\\}\\}</span>', 'g');
+      var styledRegex = varChipRegex(col);
       if (display) {
         if (forPdf) {
           rowHtml = rowHtml.replace(styledRegex, sanitize(display));
@@ -3703,7 +3726,7 @@ function executeLoop(filterColumn, filterValue, loopContent, forPdf) {
       var display = formatValueForDisplay(val);
       
       // Replace styled spans
-      var styledRegex = new RegExp('<span[^>]*>\\{\\{' + escapeRegex(col) + '\\}\\}</span>', 'g');
+      var styledRegex = varChipRegex(col);
       if (display) {
         if (forPdf) {
           rowHtml = rowHtml.replace(styledRegex, sanitize(display));
@@ -3736,7 +3759,7 @@ function executeLoop(filterColumn, filterValue, loopContent, forPdf) {
 }
 
 function resolveTemplate(html, record, forPdf) {
-  var resolved = html;
+  var resolved = unwrapVarChips(html);
   
   // Process {{#each Column=Value}}...{{/each}} loops first
   resolved = processLoops(resolved, forPdf);
@@ -3766,7 +3789,7 @@ function resolveTemplate(html, record, forPdf) {
     var val = record[col];
     var display = formatValueForDisplay(val);
     // Replace styled spans (Quill wraps variables in <span style="...">)
-    var styledRegex = new RegExp('<span[^>]*>\\{\\{' + escapeRegex(col) + '\\}\\}</span>', 'g');
+    var styledRegex = varChipRegex(col);
     if (display) {
       if (forPdf) {
         resolved = resolved.replace(styledRegex, sanitize(display));
@@ -3815,6 +3838,121 @@ function resolveTemplate(html, record, forPdf) {
 
 function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// ---------------------------------------------------------------------------
+// Bordures posées en ligne sur une cellule ou un tableau
+// ---------------------------------------------------------------------------
+// On ne lit JAMAIS el.style.border : dès qu'on écrit « border: none », le
+// navigateur le range en propriétés détaillées (border-style, border-width…) et
+// le raccourci relu rend une chaîne vide. Le code concluait alors « aucune
+// bordure définie » et remettait la bordure noire par défaut — c'est pour cela
+// que les bordures invisibles revenaient dans le PDF et que la case se
+// retrouvait décochée à la réouverture du réglage.
+
+var BORDER_SIDES = ['Top', 'Right', 'Bottom', 'Left'];
+
+function rgbToHex(c) {
+  var m = String(c || '').match(/rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/);
+  if (!m) return c || '';
+  return '#' + [m[1], m[2], m[3]].map(function(v) { return ('0' + parseInt(v, 10).toString(16)).slice(-2); }).join('');
+}
+
+// null si rien n'est posé sur ce côté, sinon { none } ou { width, style, color }.
+function inlineBorderSide(el, side) {
+  var st = el.style['border' + side + 'Style'], wd = el.style['border' + side + 'Width'], co = el.style['border' + side + 'Color'];
+  if (!st && !wd && !co) return null;
+  if (st === 'none' || st === 'hidden' || wd === '0px' || co === 'transparent') return { none: true };
+  return { none: false, width: (wd && wd !== 'medium') ? wd : '1px', style: st || 'solid', color: rgbToHex(co) || '#000000' };
+}
+
+function hasInlineBorder(el) {
+  return BORDER_SIDES.some(function(s) { return inlineBorderSide(el, s) !== null; });
+}
+
+// Bordure d'un élément sous la forme « 1px solid #000000 » ou « none » ;
+// chaîne vide si rien n'est posé. On retient le premier côté visible : c'est ce
+// que les réglages affichent comme valeur courante.
+function inlineBorderCss(el) {
+  var sides = BORDER_SIDES.map(function(s) { return inlineBorderSide(el, s); }).filter(Boolean);
+  if (!sides.length) return '';
+  var visible = sides.filter(function(s) { return !s.none; })[0];
+  return visible ? visible.width + ' ' + visible.style + ' ' + visible.color : 'none';
+}
+
+// Un changement fait directement dans le DOM de l'éditeur ne déclenche rien :
+// sans cela, la sauvegarde automatique ignorait le réglage.
+function notifyEditorChange(editor) {
+  try {
+    if (editor && typeof editor.synchronizeValues === 'function') editor.synchronizeValues();
+    if (editor && editor.e) editor.e.fire('change');
+  } catch (e) { scheduleAutoSave(); }
+}
+
+// ---------------------------------------------------------------------------
+// Puces de variable
+// ---------------------------------------------------------------------------
+// Dans l'éditeur, une variable est entourée d'un <span> décoratif non modifiable
+// (fond coloré, coins arrondis). À la fusion ce <span> doit disparaître, mais pas
+// la mise en forme que l'utilisateur a voulue pour le champ.
+
+var VAR_CHIP_OPEN = '<span(?=[^>]*(?:contenteditable="false"|border-radius))[^>]*>';
+var VAR_CHIP_COLORS = ['#7c3aed', '#166534', '#92400e', '#1e40af'];   // couleurs propres aux puces
+
+// Ne retire que les puces : un <span> de mise en forme autour de {{...}} reste.
+function varChipRegex(name) {
+  return new RegExp(VAR_CHIP_OPEN + '\\{\\{' + escapeRegex(name) + '\\}\\}</span>', 'g');
+}
+
+// Mise en forme voulue par l'utilisateur et portée par la puce elle-même.
+function chipUserStyle(openTag) {
+  var m = openTag.match(/style="([^"]*)"/i);
+  if (!m) return '';
+  var holder = document.createElement('span');
+  holder.setAttribute('style', m[1].replace(/&quot;/g, '"'));
+  var s = holder.style, out = [];
+  if (s.fontFamily) out.push('font-family:' + s.fontFamily);
+  if (s.fontSize) out.push('font-size:' + s.fontSize);
+  if (s.fontStyle) out.push('font-style:' + s.fontStyle);
+  if (s.textDecorationLine || s.textDecoration) out.push('text-decoration:' + (s.textDecorationLine || s.textDecoration));
+  // Le gras et la couleur ne comptent que s'ils diffèrent de l'habillage de la puce.
+  if (s.fontWeight && s.fontWeight !== '600') out.push('font-weight:' + s.fontWeight);
+  if (s.color && VAR_CHIP_COLORS.indexOf(rgbToHex(s.color).toLowerCase()) === -1) out.push('color:' + s.color);
+  return out.join(';').replace(/"/g, '&quot;');
+}
+
+// Les puces d'image ({{IMG:...}}) sont laissées au code qui traite les images.
+// Retire les puces en gardant ce qu'elles contiennent, balises de mise en forme
+// comprises : « <puce><span style="font-family:Arial">{{Nom}}</span></puce> »
+// devient « <span style="font-family:Arial">{{Nom}}</span> ».
+function unwrapVarChips(html) {
+  var inline = '(?:span|strong|em|b|i|u|s|font)';
+  var re = new RegExp('(' + VAR_CHIP_OPEN + ')((?:<' + inline + '[^>]*>)*)(\\{\\{(?![#/]|IMG:)[^{}]+\\}\\})((?:</' + inline + '>)*)</span>', 'g');
+  return String(html || '').replace(re, function(all, open, before, placeholder, after) {
+    var inner = before + placeholder + after;
+    var style = chipUserStyle(open);
+    return style ? '<span style="' + style + '">' + inner + '</span>' : inner;
+  });
+}
+
+// Jodit ne met pas en forme un élément non modifiable : une police appliquée à
+// un paragraphe sautait donc par-dessus les variables, qui sortaient toujours
+// dans la police par défaut. On lève le verrou le temps de la commande.
+var VAR_FORMAT_COMMANDS = ['fontname', 'fontsize', 'bold', 'italic', 'underline', 'strikethrough', 'forecolor', 'background', 'removeformat', 'subscript', 'superscript'];
+
+function editorVarChips(editor) {
+  return Array.prototype.filter.call(editor.editor.querySelectorAll('span'), function(sp) {
+    return /border-radius/.test(sp.getAttribute('style') || '') && /^\s*\{\{(?![#/])[^{}]+\}\}\s*$/.test(sp.textContent);
+  });
+}
+function unlockVarChips(editor) {
+  editorVarChips(editor).forEach(function(sp) { sp.removeAttribute('contenteditable'); });
+}
+function lockVarChips(editor) {
+  editorVarChips(editor).forEach(function(sp) {
+    // Les puces d'image n'ont jamais été verrouillées : on ne change pas leur comportement.
+    if (!/\{\{IMG:/.test(sp.textContent)) sp.setAttribute('contenteditable', 'false');
+  });
 }
 
 function renderPreview() {
@@ -4260,18 +4398,14 @@ async function renderHtmlToPdfPages(html, pdf, pageWidth, pageHeight, pageSize) 
       table.style.pageBreakInside = 'avoid';
       
       // Check if table has a custom border
-      var tableBorder = table.style.border;
-      var hasTableBorder = tableBorder && tableBorder !== 'none' && tableBorder !== '';
+      var tableBorder = inlineBorderCss(table);
+      var hasTableBorder = tableBorder && tableBorder !== 'none';
       
       // Apply cell styles
       var cells = table.querySelectorAll('td, th');
       cells.forEach(function(cell) {
         // Check if cell has ANY border style (individual or shorthand)
-        var hasCellBorder = cell.style.border || 
-                        cell.style.borderTop || 
-                        cell.style.borderBottom || 
-                        cell.style.borderLeft || 
-                        cell.style.borderRight;
+        var hasCellBorder = hasInlineBorder(cell);
         
         // If table has custom border, apply same border to cells (no default black)
         if (hasTableBorder && !hasCellBorder) {
@@ -4416,7 +4550,7 @@ async function renderHtmlToPdfPages(html, pdf, pageWidth, pageHeight, pageSize) 
         var clonedCells = clonedElement.querySelectorAll('td, th');
         clonedCells.forEach(function(cell) {
           // Only set border if none exists
-          if (!cell.style.border && !cell.style.borderTop && !cell.style.borderBottom && !cell.style.borderLeft && !cell.style.borderRight) {
+          if (!hasInlineBorder(cell)) {
             cell.style.border = '1px solid #000';
           }
           if (!cell.style.padding) {
